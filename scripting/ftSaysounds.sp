@@ -88,6 +88,8 @@ public void OnPluginStart()
     g_hSoundRestrictionTimeCookie   = RegClientCookie("cookie_ss_restriction_time", "Saysound restriction time", CookieAccess_Protected);
     g_hSoundToggleCookie            = RegClientCookie("cookie_ss_toggle", "Saysound toggle", CookieAccess_Protected);
 
+    RegConsoleCmd("sm_ss_volume", CommandSSVolume, "Set say sounds volume per player.");
+
     AddCommandListener(CommandListenerSay, "say");
     AddCommandListener(CommandListenerSay, "say2");
     AddCommandListener(CommandListenerSay, "say_team");
@@ -318,11 +320,7 @@ int ProcessPitch(const char[] argText) {
     ReplaceString(ag, sizeof(ag), "@", "");
 
     if(StrEqual(ag, "")) {return -1;}
-    for(int i = 0; i < strlen(ag); i++) {
-        if (!IsCharNumeric(ag[i])) {
-            return -1;
-        }
-    }
+    if(!IsOnlyDicimal(ag)) { return -1;}
 
     int p = StringToInt(ag);
     if(p > SAYSOUND_PITCH_MAX || SAYSOUND_PITCH_MIN > p) {
@@ -336,12 +334,11 @@ float ProcessLength(const char[] argText) {
     strcopy(ag, sizeof(ag), argText);
     ReplaceString(ag, sizeof(ag), "%", "");
 
-    if(StrEqual(ag, "")) {return -1.0;}
-    for(int i = 0; i < strlen(ag); i++) {
-        if (!IsCharNumeric(ag[i])) {
-            return -1.0;
-        }
-    }
+    char check[6];
+    strcopy(check, sizeof(check), ag);
+    ReplaceString(check, sizeof(check), ".", "");
+    if(StrEqual(check, "")) {return -1.0;}
+    if(!IsOnlyDicimal(check)) { return -1.0;}
 
     float l = StringToFloat(ag);
     if(l < SAYSOUND_LENGTH_MIN || l > SAYSOUND_LENGTH_MAX) {
@@ -355,7 +352,10 @@ public Action StopSoundTimer(Handle timer, DataPack pack) {
     pack.Reset();
     pack.ReadString(soundPath, sizeof(soundPath));
     for(int i = 1; i <= MaxClients; i++) {
-        StopSound(i, SNDCHAN_VOICE, soundPath);
+        if(IsClientConnected(i)) {
+            StopSound(i, SNDCHAN_STATIC, soundPath);
+        }
+
     }
     return Plugin_Stop;
 }
@@ -441,5 +441,31 @@ void PrecacheSounds() {
             FormatEx(buffer, sizeof(buffer), "sound/%s", soundFile);
             AddFileToDownloadsTable(buffer);
         }
+    }
+}
+
+bool IsOnlyDicimal(char[] string) {
+    for(int i = 0; i < strlen(string); i++) {
+        if (!IsCharNumeric(string[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
+
+// USER COMMAND AREA
+
+public Action CommandSSVolume(int client, int args) {
+    if(args == 0) {
+        CPrintToChat(client, "TODO() Usage");
+        return Plugin_Handled;
+    }
+
+    if(args >= 1) {
+        char arg1[4];
+        GetCmdArg(1, arg1, sizeof(arg1));
     }
 }
