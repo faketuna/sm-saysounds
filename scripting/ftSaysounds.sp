@@ -617,11 +617,16 @@ public Action CommandSBanUser(int client, int args) {
             return Plugin_Handled;
         }
         if(targetCount == 1) {
-            g_bIsPlayerRestricted[targetList[0]] = true;
-            SetClientCookie(targetList[0], g_hSoundRestrictionCookie, "1");
             char buff[MAX_TARGET_LENGTH];
             GetClientName(targetList[0], buff, sizeof(buff));
+            if(g_bIsPlayerRestricted[targetList[0]]) {
+                CPrintToChat(client, "%t%t", "ss prefix", "ss user already banned", buff);
+                return Plugin_Handled;
+            }
+
             CPrintToChat(client, "%t%t", "ss prefix", "ss user banned", buff);
+            g_bIsPlayerRestricted[targetList[0]] = true;
+            SetClientCookie(targetList[0], g_hSoundRestrictionCookie, "1");
             return Plugin_Handled;
         }
         //TODO Ban menu with suggesion.
@@ -656,11 +661,16 @@ public Action CommandSUnBanUser(int client, int args) {
             return Plugin_Handled;
         }
         if(targetCount == 1) {
-            g_bIsPlayerRestricted[targetList[0]] = false;
-            SetClientCookie(targetList[0], g_hSoundRestrictionCookie, "0");
             char buff[MAX_TARGET_LENGTH];
             GetClientName(targetList[0], buff, sizeof(buff));
+            if(!g_bIsPlayerRestricted[targetList[0]]) {
+                CPrintToChat(client, "%t%t", "ss prefix", "ss user not banned", buff);
+                return Plugin_Handled;
+            }
+
             CPrintToChat(client, "%t%t", "ss prefix", "ss user unbanned", buff);
+            g_bIsPlayerRestricted[targetList[0]] = false;
+            SetClientCookie(targetList[0], g_hSoundRestrictionCookie, "0");
             return Plugin_Handled;
         }
         //TODO unban menu with suggesion.
