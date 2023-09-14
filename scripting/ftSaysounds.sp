@@ -48,7 +48,7 @@ float g_fLastSaySound[MAXPLAYERS+1];
 
 // Client prefs (Player setting) related.
 bool g_bIsPlayerRestricted[MAXPLAYERS+1];
-bool g_fPlayerSoundDisabled[MAXPLAYERS+1];
+bool g_bPlayerSoundDisabled[MAXPLAYERS+1];
 float g_fPlayerSoundVolume[MAXPLAYERS+1];
 float g_fPlayerSoundLength[MAXPLAYERS+1];
 float g_fPlayerRestrictionTime[MAXPLAYERS+1];
@@ -91,6 +91,7 @@ public void OnPluginStart()
     RegConsoleCmd("sm_ss_volume", CommandSSVolume, "Set say sounds volume per player.");
     RegConsoleCmd("sm_ss_speed", CommandSSSpeed, "Set say sounds volume per player.");
     RegConsoleCmd("sm_ss_seconds", CommandSSSeconds, "Set say sounds volume per player.");
+    RegConsoleCmd("sm_ss_toggle", CommandSSToggle, "Set say sounds volume per player.");
 
     AddCommandListener(CommandListenerSay, "say");
     AddCommandListener(CommandListenerSay, "say2");
@@ -166,9 +167,9 @@ public void OnClientCookiesCached(int client) {
     GetClientCookie(client, g_hSoundToggleCookie, cookieValue, sizeof(cookieValue));
 
     if (!StrEqual(cookieValue, "")) {
-        g_fPlayerSoundDisabled[client] = view_as<bool>(StringToInt(cookieValue));
+        g_bPlayerSoundDisabled[client] = view_as<bool>(StringToInt(cookieValue));
     } else {
-        g_fPlayerSoundDisabled[client] = false;
+        g_bPlayerSoundDisabled[client] = false;
         SetClientCookie(client, g_hSoundToggleCookie, "false");
     }
 }
@@ -273,7 +274,7 @@ void TrySaySound(int client, char[] soundName, int saySoundIndex, int pitch = 10
 
 
     for(int i = 1; i <= MaxClients; i++) {
-        if(!IsClientInGame(i) || g_fPlayerSoundDisabled[i]) {
+        if(!IsClientInGame(i) || g_bPlayerSoundDisabled[i]) {
             continue;
         }
         EmitSoundToClient(
@@ -525,6 +526,14 @@ public Action CommandSSSeconds(int client, int args) {
         return Plugin_Handled;
     }
 
+    // TODO Pref menu
+    return Plugin_Handled;
+}
+
+public Action CommandSSToggle(int client, int args) {
+    g_bPlayerSoundDisabled[client] = !g_bPlayerSoundDisabled[client];
+    SetClientCookie(client, g_hSoundToggleCookie, g_bPlayerSoundDisabled[client] ? "1" : "0");
+    CPrintToChat(client, "TODO() Success to toggle say sound: %s", g_bPlayerSoundDisabled[client] ? "1" : "0");
     // TODO Pref menu
     return Plugin_Handled;
 }
