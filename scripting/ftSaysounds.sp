@@ -95,6 +95,7 @@ public void OnPluginStart()
     RegConsoleCmd("sm_ss_speed", CommandSSSpeed, "Set saysounds speed per player.");
     RegConsoleCmd("sm_ss_length", CommandSSLength, "Set saysounds length per player.");
     RegConsoleCmd("sm_ss_toggle", CommandSSToggle, "Toggle saysounds per player.");
+    RegConsoleCmd("sm_ssmenu", CommandSSMenu, "Toggle saysounds per player.");
 
     RegAdminCmd("sm_ss_ban", CommandSBanUser, ADMFLAG_CHAT, "Ban a specific user.");
     RegAdminCmd("sm_ss_unban", CommandSUnBanUser, ADMFLAG_CHAT, "unban a specific user.");
@@ -495,6 +496,11 @@ bool IsOnlyDicimal(char[] string) {
 
 
 // USER COMMAND AREA
+
+public Action CommandSSMenu(int client, int args) {
+    DisplaySettingsMenu(client);
+    return Plugin_Handled;
+}
 
 public Action CommandSSVolume(int client, int args) {
     if(args >= 1) {
