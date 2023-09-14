@@ -98,6 +98,8 @@ public void OnPluginStart()
     RegConsoleCmd("sm_ssmenu", CommandSSMenu, "Toggle saysounds per player.");
     RegConsoleCmd("sm_ss_list", CommandSSList, "Show saysounds list");
     RegConsoleCmd("sm_sslist", CommandSSList, "Show saysounds list");
+    RegConsoleCmd("sm_ss_search", CommandSSSearch, "Search and show saysounds list");
+    RegConsoleCmd("sm_sss", CommandSSSearch, "Search and show saysounds list");
 
     RegAdminCmd("sm_ss_ban", CommandSBanUser, ADMFLAG_CHAT, "Ban a specific user.");
     RegAdminCmd("sm_ss_unban", CommandSUnBanUser, ADMFLAG_CHAT, "unban a specific user.");
@@ -507,6 +509,22 @@ public Action CommandSSList(int client, int args) {
     return Plugin_Handled;
 }
 
+public Action CommandSSSearch(int client, int args) {
+    if(args == 0) {
+        CPrintToChat(client, "TODO() USAGE: !ss_search <sound name>");
+        return Plugin_Handled;
+    }
+    char buff[SAYSOUND_SOUND_NAME_SIZE];
+    GetCmdArg(1, buff, sizeof(buff));
+    if(strlen(buff) < 2) {
+        CPrintToChat(client, "TODO() LEAST 3 CHARACTER REQUIRED.");
+        return Plugin_Handled;
+    }
+    
+    DisplaySSSResultMenu(client, buff);
+    return Plugin_Handled;
+}
+
 public Action CommandSSMenu(int client, int args) {
     DisplaySettingsMenu(client);
     return Plugin_Handled;
@@ -727,6 +745,58 @@ void DisplaySSListMenu(int client)
 
 
 public int SSListMenuHanlder(Menu prefmenu, MenuAction actions, int client, int item)
+{
+    SetGlobalTransTarget(client);
+    if (actions == MenuAction_Select)
+    {
+        char preference[SAYSOUND_SOUND_NAME_SIZE];
+        GetMenuItem(prefmenu, item, preference, sizeof(preference));
+        FakeClientCommand(client, "say %s", preference);
+    }
+    else if (actions == MenuAction_Cancel)
+    {
+        if (item == MenuCancel_ExitBack)
+        {
+            ShowCookieMenu(client);
+        }
+    }
+    else if (actions == MenuAction_End)
+    {
+        CloseHandle(prefmenu);
+    }
+    return 0;
+}
+
+
+void DisplaySSSResultMenu(int client, char[] search)
+{
+    SetGlobalTransTarget(client);
+    Menu prefmenu = CreateMenu(SSListMenuHanlder, MENU_ACTIONS_DEFAULT);
+
+    int size = GetArraySize(g_hSoundName);
+    int found = 0;
+    char buff[SAYSOUND_SOUND_NAME_SIZE];
+    for(int i = 0; i < size; i++) {
+        GetArrayString(g_hSoundName, i, buff, sizeof(buff));
+        if(StrContains(buff, search, false) >= 0) {
+            prefmenu.AddItem(buff, buff);
+            found++;
+        }
+    }
+    char menuTitle[64];
+    Format(menuTitle, sizeof(menuTitle), "TODO() SEARCH OF <TEXT> | HIT: %d", found);
+    prefmenu.SetTitle(menuTitle);
+
+    if(found == 0) {
+        CPrintToChat(client, "TODO() NO SOUND FOUND");
+        CloseHandle(prefmenu);
+        return;
+    }
+    prefmenu.Display(client, MENU_TIME_FOREVER);
+}
+
+
+public int SSSResultMenuHanlder(Menu prefmenu, MenuAction actions, int client, int item)
 {
     SetGlobalTransTarget(client);
     if (actions == MenuAction_Select)
