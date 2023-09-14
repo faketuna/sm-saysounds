@@ -200,6 +200,20 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
         if(g_bIsPlayerRestricted[client]) {
             return Plugin_Continue;
         }
+        if(g_fLastSaySound[client] == 0.0) {
+            g_fLastSaySound[client] = GetGameTime();
+        }
+
+        float ft = GetGameTime() - g_fLastSaySound[client];
+        float fi       = g_fSaySoundsInterval;
+        if(ft <= fi) {
+            CPrintToChat(client, "TODO() Do not spam wait for %.1fs", fi-ft);
+            if(g_bSaySoundsCancelChat) {
+                return Plugin_Handled;
+            }
+            return Plugin_Continue;
+        }
+
         char arg1[32];
         GetCmdArg(1, arg1, sizeof(arg1));
 
@@ -272,7 +286,7 @@ void TrySaySound(int client, char[] soundName, int saySoundIndex, int pitch = 10
 
     GetArrayString(g_hPath, saySoundIndex, fileLocation, sizeof(fileLocation));
 
-
+    g_fLastSaySound[client] = GetGameTime();
     for(int i = 1; i <= MaxClients; i++) {
         if(!IsClientInGame(i) || g_bPlayerSoundDisabled[i]) {
             continue;
