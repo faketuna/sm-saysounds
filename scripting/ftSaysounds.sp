@@ -89,6 +89,7 @@ public void OnPluginStart()
     g_hSoundToggleCookie            = RegClientCookie("cookie_ss_toggle", "Saysound toggle", CookieAccess_Protected);
 
     RegConsoleCmd("sm_ss_volume", CommandSSVolume, "Set say sounds volume per player.");
+    RegConsoleCmd("sm_ss_speed", CommandSSSpeed, "Set say sounds volume per player.");
 
     AddCommandListener(CommandListenerSay, "say");
     AddCommandListener(CommandListenerSay, "say2");
@@ -469,6 +470,25 @@ public Action CommandSSVolume(int client, int args) {
 
         g_fPlayerSoundVolume[client] = float(StringToInt(arg1)) / 100;
         CPrintToChat(client, "TODO() Success to set volume");
+        return Plugin_Handled;
+    }
+
+    // TODO Pref menu
+    return Plugin_Handled;
+}
+
+public Action CommandSSSpeed(int client, int args) {
+    if(args >= 1) {
+        char arg1[4];
+        GetCmdArg(1, arg1, sizeof(arg1));
+        if(!IsOnlyDicimal(arg1)) {
+            CPrintToChat(client, "TODO() Invalid arguments.");
+            return Plugin_Handled;
+        }
+
+        g_iPlayerSoundPitch[client] = StringToInt(arg1);
+        SetClientCookie(client, g_hSoundPitchCookie, arg1);
+        CPrintToChat(client, "TODO() Success to set speed");
         return Plugin_Handled;
     }
 
