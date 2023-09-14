@@ -18,21 +18,21 @@
     }
     "ss cmd value out of range"
     {
-        "#format"   "{1:f}"
+        "#format"   "{1:s}"
         "en"        "{1} is out of range."
         "jp"        "{1}は範囲外の数値です。"
     }
     "ss cmd set volume"
     {
         "#format"   "{1:s}"
-        "en"        "Saysounds volume set to {green}{1}{default}."
-        "jp"        "Saysoundsの音量を{green}{1}{default}に設定しました。"
+        "en"        "Saysounds volume set to {green}{1}%%{default}."
+        "jp"        "Saysoundsの音量を{green}{1}%%{default}に設定しました。"
     }
     "ss cmd set speed"
     {
         "#format"   "{1:s}"
-        "en"        "Saysounds playabck speed set to {green}{1}{default}."
-        "jp"        "Saysoundsの再生速度を{green}{1}{default}に設定しました。"
+        "en"        "Saysounds playabck speed set to {green}{1}%%{default}."
+        "jp"        "Saysoundsの再生速度を{green}{1}%%{default}に設定しました。"
     }
     "ss cmd length cleared"
     {
