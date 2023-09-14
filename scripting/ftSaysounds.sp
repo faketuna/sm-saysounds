@@ -140,6 +140,9 @@ public void OnClientCookiesCached(int client) {
 
     if (!StrEqual(cookieValue, "")) {
         g_fPlayerSoundLength[client] = StringToFloat(cookieValue);
+        if(StrEqual(cookieValue, "0.0") || StrEqual(cookieValue, "-1.0") || StrEqual(cookieValue, "0") ) {
+            g_fPlayerSoundLength[client] = -1.0;
+        }
     } else {
         g_fPlayerSoundLength[client] = -1.0;
         SetClientCookie(client, g_hSoundLengthCookie, "-1.0");
