@@ -90,7 +90,7 @@ public void OnPluginStart()
 
     RegConsoleCmd("sm_ss_volume", CommandSSVolume, "Set saysounds volume per player.");
     RegConsoleCmd("sm_ss_speed", CommandSSSpeed, "Set saysounds speed per player.");
-    RegConsoleCmd("sm_ss_seconds", CommandSSSeconds, "Set saysounds length per player.");
+    RegConsoleCmd("sm_ss_length", CommandSSLength, "Set saysounds length per player.");
     RegConsoleCmd("sm_ss_toggle", CommandSSToggle, "Toggle saysounds per player.");
 
     RegAdminCmd("sm_ss_ban", CommandSBanUser, ADMFLAG_CHAT, "Ban a specific user.");
@@ -539,7 +539,7 @@ public Action CommandSSSpeed(int client, int args) {
     return Plugin_Handled;
 }
 
-public Action CommandSSSeconds(int client, int args) {
+public Action CommandSSLength(int client, int args) {
     if(args >= 1) {
         char arg1[4];
         GetCmdArg(1, arg1, sizeof(arg1));
