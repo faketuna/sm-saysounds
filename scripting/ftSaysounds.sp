@@ -102,6 +102,8 @@ public void OnPluginStart()
     ParseConfig();
 
     LoadTranslations("common.phrases");
+
+    SetCookieMenuItem(SoundSettingsMenu, 0 ,"Saysounds");
     for(int i = 1; i <= MaxClients; i++) {
         if(IsClientConnected(i)) {
             if(AreClientCookiesCached(i)) {
@@ -508,7 +510,7 @@ public Action CommandSSVolume(int client, int args) {
         return Plugin_Handled;
     }
 
-    // TODO Pref menu
+    DisplaySettingsMenu(client);
     return Plugin_Handled;
 }
 
@@ -533,7 +535,7 @@ public Action CommandSSSpeed(int client, int args) {
         return Plugin_Handled;
     }
 
-    // TODO Pref menu
+    DisplaySettingsMenu(client);
     return Plugin_Handled;
 }
 
@@ -557,7 +559,7 @@ public Action CommandSSSeconds(int client, int args) {
         return Plugin_Handled;
     }
 
-    // TODO Pref menu
+    DisplaySettingsMenu(client);
     return Plugin_Handled;
 }
 
@@ -565,7 +567,6 @@ public Action CommandSSToggle(int client, int args) {
     g_bPlayerSoundDisabled[client] = !g_bPlayerSoundDisabled[client];
     SetClientCookie(client, g_hSoundToggleCookie, g_bPlayerSoundDisabled[client] ? "1" : "0");
     CPrintToChat(client, "TODO() Success to toggle say sound: %s", g_bPlayerSoundDisabled[client] ? "1" : "0");
-    // TODO Pref menu
     return Plugin_Handled;
 }
 
@@ -644,4 +645,146 @@ public Action CommandSUnBanUser(int client, int args) {
 
     // TODO unban menu
     return Plugin_Handled;
+}
+
+
+
+// MENU HANDLER AREA
+
+void DisplaySettingsMenu(int client)
+{
+    SetGlobalTransTarget(client);
+    Menu prefmenu = CreateMenu(SoundSettingHandler, MENU_ACTIONS_DEFAULT);
+
+    char menuTitle[64];
+    Format(menuTitle, sizeof(menuTitle), "TODO() Sound setting menu");
+    prefmenu.SetTitle(menuTitle);
+
+    char isRestricted[64], restrectionExpireDate[64], soundDisabled[64], soundVolume[64], soundLength[64] , soundPitch[64];
+
+    Format(isRestricted, sizeof(isRestricted), "Restricted: %s", g_bIsPlayerRestricted[client] ? "Yes" : "No");
+    prefmenu.AddItem("ss_pref_is_restricted", isRestricted);
+    if(g_bIsPlayerRestricted[client]) {
+        Format(restrectionExpireDate, sizeof(restrectionExpireDate), "Expire in: %f", g_fPlayerRestrictionTime[client]);
+        prefmenu.AddItem("ss_pref_restriction_expire", restrectionExpireDate);
+    }
+
+    Format(soundDisabled, sizeof(soundDisabled), "Disable saysounds: %s", g_bPlayerSoundDisabled[client] ? "Yes" : "No");
+    prefmenu.AddItem("ss_pref_disable", soundDisabled);
+
+    Format(soundVolume, sizeof(soundVolume), "Volume: %.0f", g_fPlayerSoundVolume[client] * 100);
+    switch (RoundToZero((g_fPlayerSoundVolume[client]*100)))
+    {
+        case 10: { prefmenu.AddItem("ss_pref_volume_100", soundVolume);}
+        case 20: { prefmenu.AddItem("ss_pref_volume_10", soundVolume);}
+        case 30: { prefmenu.AddItem("ss_pref_volume_20", soundVolume);}
+        case 40: { prefmenu.AddItem("ss_pref_volume_30", soundVolume);}
+        case 50: { prefmenu.AddItem("ss_pref_volume_40", soundVolume);}
+        case 60: { prefmenu.AddItem("ss_pref_volume_50", soundVolume);}
+        case 70: { prefmenu.AddItem("ss_pref_volume_60", soundVolume);}
+        case 80: { prefmenu.AddItem("ss_pref_volume_70", soundVolume);}
+        case 90: { prefmenu.AddItem("ss_pref_volume_80", soundVolume);}
+        case 100: { prefmenu.AddItem("ss_pref_volume_90", soundVolume);}
+        default: { prefmenu.AddItem("ss_pref_volume_100", soundVolume);}
+    }
+
+    Format(soundLength, sizeof(soundLength), "Length: %.1f", g_fPlayerSoundLength[client]);
+    CPrintToChatAll("%d", RoundToZero(g_fPlayerSoundLength[client]));
+    switch (RoundToZero(g_fPlayerSoundLength[client]))
+    {
+        case 1: { prefmenu.AddItem("ss_pref_length_0", soundLength);}
+        case 2: { prefmenu.AddItem("ss_pref_length_1", soundLength);}
+        case 3: { prefmenu.AddItem("ss_pref_length_2", soundLength);}
+        case 4: { prefmenu.AddItem("ss_pref_length_3", soundLength);}
+        case 5: { prefmenu.AddItem("ss_pref_length_4", soundLength);}
+        default: {
+            Format(soundLength, sizeof(soundLength), "Length: Disabled");
+            prefmenu.AddItem("ss_pref_length_5", soundLength);
+        }
+    }
+
+    Format(soundPitch, sizeof(soundPitch), "Speed: %d", g_iPlayerSoundPitch[client]);
+    switch (g_iPlayerSoundPitch[client])
+    {
+        case 50: { prefmenu.AddItem("ss_pref_speed_150", soundPitch);}
+        case 60: { prefmenu.AddItem("ss_pref_speed_50", soundPitch);}
+        case 70: { prefmenu.AddItem("ss_pref_speed_60", soundPitch);}
+        case 80: { prefmenu.AddItem("ss_pref_speed_70", soundPitch);}
+        case 90: { prefmenu.AddItem("ss_pref_speed_80", soundPitch);}
+        case 100: { prefmenu.AddItem("ss_pref_speed_90", soundPitch);}
+        case 110: { prefmenu.AddItem("ss_pref_speed_100", soundPitch);}
+        case 120: { prefmenu.AddItem("ss_pref_speed_110", soundPitch);}
+        case 130: { prefmenu.AddItem("ss_pref_speed_120", soundPitch);}
+        case 140: { prefmenu.AddItem("ss_pref_speed_130", soundPitch);}
+        case 150: { prefmenu.AddItem("ss_pref_speed_140", soundPitch);}
+        default: { prefmenu.AddItem("ss_pref_speed_100", soundPitch);}
+    }
+    prefmenu.ExitBackButton = true;
+    prefmenu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int SoundSettingHandler(Menu prefmenu, MenuAction actions, int client, int item)
+{
+    SetGlobalTransTarget(client);
+    if (actions == MenuAction_Select)
+    {
+        char preference[32];
+        GetMenuItem(prefmenu, item, preference, sizeof(preference));
+        if(StrEqual(preference, "ss_pref_disable"))
+        {
+            g_bPlayerSoundDisabled[client] = !g_bPlayerSoundDisabled[client];
+        }
+        if(StrContains(preference, "ss_pref_volume_") >= 0)
+        {
+            ReplaceString(preference, sizeof(preference), "ss_pref_volume_", "");
+            int val = StringToInt(preference);
+            g_fPlayerSoundVolume[client] = float(val) / 100;
+        }
+        if(StrContains(preference, "ss_pref_length_") >= 0)
+        {
+            ReplaceString(preference, sizeof(preference), "ss_pref_length_", "");
+            int val = StringToInt(preference);
+            CPrintToChatAll("%d", val);
+            CPrintToChatAll("%s", preference);
+            if(val == 0) {
+                g_fPlayerSoundLength[client] = -1.0;
+            } else {
+                g_fPlayerSoundLength[client] = float(val);
+            }
+        }
+        if(StrContains(preference, "ss_pref_speed_") >= 0)
+        {
+            ReplaceString(preference, sizeof(preference), "ss_pref_speed_", "");
+            int val = StringToInt(preference);
+            CPrintToChatAll("%d", val);
+            CPrintToChatAll("%s", preference);
+            g_iPlayerSoundPitch[client] = val;
+        }
+        DisplaySettingsMenu(client);
+    }
+    else if (actions == MenuAction_Cancel)
+    {
+        if (item == MenuCancel_ExitBack)
+        {
+            ShowCookieMenu(client);
+        }
+    }
+    else if (actions == MenuAction_End)
+    {
+        CloseHandle(prefmenu);
+    }
+    return 0;
+}
+
+public void SoundSettingsMenu(int client, CookieMenuAction actions, any info, char[] buffer, int maxlen)
+{
+    if (actions == CookieMenuAction_DisplayOption)
+    {
+        Format(buffer, maxlen, "Saysounds");
+    }
+    
+    if (actions == CookieMenuAction_SelectOption)
+    {
+        DisplaySettingsMenu(client);
+    }
 }
