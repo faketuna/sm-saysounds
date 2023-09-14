@@ -190,7 +190,7 @@ public void OnMapStart() {
 
 public void SyncConVarValues() {
     g_bPluginEnabled        = GetConVarBool(g_cSaySoundsEnabled);
-    g_bSaySoundsCancelChat  = GetConVarBool(g_cSaySoundsInterval);
+    g_bSaySoundsCancelChat  = GetConVarBool(g_cSaySoundsCancelChat);
     g_fSaySoundsInterval    = GetConVarFloat(g_cSaySoundsInterval);
 }
 
@@ -214,7 +214,7 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
 
     float ft = GetGameTime() - g_fLastSaySound[client];
     float fi       = g_fSaySoundsInterval;
-    if(ft <= fi) {
+    if(ft <= fi && fi != 0.0) {
         CPrintToChat(client, "TODO() Do not spam wait for %.1fs", fi-ft);
         if(g_bSaySoundsCancelChat) {
             return Plugin_Handled;
