@@ -765,32 +765,34 @@ public int SoundSettingHandler(Menu prefmenu, MenuAction actions, int client, in
         if(StrEqual(preference, "ss_pref_disable"))
         {
             g_bPlayerSoundDisabled[client] = !g_bPlayerSoundDisabled[client];
+            SetClientCookie(client, g_hSoundToggleCookie, g_bPlayerSoundDisabled[client] ? "1" : "0");
         }
         if(StrContains(preference, "ss_pref_volume_") >= 0)
         {
             ReplaceString(preference, sizeof(preference), "ss_pref_volume_", "");
             int val = StringToInt(preference);
             g_fPlayerSoundVolume[client] = float(val) / 100;
+            char buff[6];
+            FloatToString(g_fPlayerSoundVolume[client], buff, sizeof(buff));
+            SetClientCookie(client, g_hSoundVolumeCookie, buff);
         }
         if(StrContains(preference, "ss_pref_length_") >= 0)
         {
             ReplaceString(preference, sizeof(preference), "ss_pref_length_", "");
             int val = StringToInt(preference);
-            CPrintToChatAll("%d", val);
-            CPrintToChatAll("%s", preference);
             if(val == 0) {
                 g_fPlayerSoundLength[client] = -1.0;
             } else {
                 g_fPlayerSoundLength[client] = float(val);
             }
+            SetClientCookie(client, g_hSoundLengthCookie, preference);
         }
         if(StrContains(preference, "ss_pref_speed_") >= 0)
         {
             ReplaceString(preference, sizeof(preference), "ss_pref_speed_", "");
             int val = StringToInt(preference);
-            CPrintToChatAll("%d", val);
-            CPrintToChatAll("%s", preference);
             g_iPlayerSoundPitch[client] = val;
+            SetClientCookie(client, g_hSoundPitchCookie, preference);
         }
         DisplaySettingsMenu(client);
     }
