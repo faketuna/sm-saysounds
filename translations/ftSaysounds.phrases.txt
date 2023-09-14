@@ -1,0 +1,117 @@
+"Phrases"
+{
+    "ss prefix"
+    {
+        "en"        "{purple}[Saysounds] {default}"
+        "jp"        "{purple}[Saysounds] {default}"
+    }
+    "ss dont spam"
+    {
+        "#format"   "{1:s}"
+        "en"        "Wait for {green}{1} seconds{default}."
+        "jp"        "あと{green}{1}秒{default}お待ち下さい。"
+    }
+    "ss cmd invalid arguments"
+    {
+        "en"        "Invalid arguments."
+        "jp"        "無効な引数です。"
+    }
+    "ss cmd value out of range"
+    {
+        "#format"   "{1:f}"
+        "en"        "{1} is out of range."
+        "jp"        "{1}は範囲外の数値です。"
+    }
+    "ss cmd set volume"
+    {
+        "#format"   "{1:s}"
+        "en"        "Saysounds volume set to {green}{1}{default}."
+        "jp"        "Saysoundsの音量を{green}{1}{default}に設定しました。"
+    }
+    "ss cmd set speed"
+    {
+        "#format"   "{1:s}"
+        "en"        "Saysounds playabck speed set to {green}{1}{default}."
+        "jp"        "Saysoundsの再生速度を{green}{1}{default}に設定しました。"
+    }
+    "ss cmd length cleared"
+    {
+        "en"        "Saysounds length has been reset."
+        "jp"        "Saysoundsの再生時間をリセットしました。"
+    }
+    "ss cmd set length"
+    {
+        "#format"   "{1:s}"
+        "en"        "Saysounds length set to {green}{1}{default} seconds."
+        "jp"        "Saysoundsの再生時間を{green}{1}{default}秒に設定しました。"
+    }
+    "ss cmd toggle enable"
+    {
+        "en"        "Saysounds now {green}enabled{default}."
+        "jp"        "Saysoundsを{green}有効化{default}しました。"
+    }
+    "ss cmd toggle disable"
+    {
+        "en"        "Saysounds now {green}disabled{default}."
+        "jp"        "Saysoundsを{green}無効化{default}しました。"
+    }
+    "ss menu title"
+    {
+        "en"        "Saysounds setting menu"
+        "jp"        "Saysounds設定メニュー"
+    }
+    "ss menu restricted"
+    {
+        "en"        "Restricted: "
+        "jp"        "制限済み: "
+    }
+    "ss menu expire"
+    {
+        "en"        "Expire in: "
+        "jp"        "解除: "
+    }
+    "ss menu disable saysounds"
+    {
+        "en"        "Disable saysounds: "
+        "jp"        "Saysoundの無効化: "
+    }
+    "ss menu volume"
+    {
+        "en"        "Volume: "
+        "jp"        "音量: "
+    }
+    "ss menu length"
+    {
+        "en"        "Length: "
+        "jp"        "再生時間: "
+    }
+    "ss menu speed"
+    {
+        "en"        "Speed: "
+        "jp"        "再生速度: "
+    }
+    "ss user banned"
+    {
+        "#format"   "{1:s}"
+        "en"        "The user {1} has been banned!"
+        "jp"        "{1}をBANしました！"
+    }
+    "ss user unbanned"
+    {
+        "#format"   "{1:s}"
+        "en"        "The user {1} has been unbanned!"
+        "jp"        "{1}のBANを解除しました！"
+    }
+    "ss user already banned"
+    {
+        "#format"   "{1:s}"
+        "en"        "The user {1} is already banned!"
+        "jp"        "{1}はすでにBANされています！"
+    }
+    "ss user not banned"
+    {
+        "#format"   "{1:s}"
+        "en"        "The user {1} is not banned."
+        "jp"        "{1}はBANされていません."
+    }
+}

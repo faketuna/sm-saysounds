@@ -102,9 +102,11 @@ public void OnPluginStart()
     ParseConfig();
 
     LoadTranslations("common.phrases");
+    LoadTranslations("ftSaysounds.phrases");
 
     SetCookieMenuItem(SoundSettingsMenu, 0 ,"Saysounds");
     for(int i = 1; i <= MaxClients; i++) {
+        g_fLastSaySound[i] = GetGameTime();
         if(IsClientConnected(i)) {
             if(AreClientCookiesCached(i)) {
                 OnClientCookiesCached(i);
@@ -208,19 +210,6 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
     if(g_bIsPlayerRestricted[client]) {
         return Plugin_Continue;
     }
-    if(g_fLastSaySound[client] == 0.0) {
-        g_fLastSaySound[client] = GetGameTime();
-    }
-
-    float ft = GetGameTime() - g_fLastSaySound[client];
-    float fi       = g_fSaySoundsInterval;
-    if(ft <= fi && fi != 0.0) {
-        CPrintToChat(client, "TODO() Do not spam wait for %.1fs", fi-ft);
-        if(g_bSaySoundsCancelChat) {
-            return Plugin_Handled;
-        }
-        return Plugin_Continue;
-    }
 
     char arg1[32], arg2[32], arg3[32];
     GetCmdArg(1, arg1, sizeof(arg1));
@@ -243,6 +232,17 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
 
     int si = GetSaySoundIndex(cBuff[0]);
     if(si == -1) {
+        return Plugin_Continue;
+    }
+
+    float ft = GetGameTime() - g_fLastSaySound[client];
+    char buff[4];
+    Format(buff, sizeof(buff), "%.1f", g_fSaySoundsInterval-ft);
+    if(ft <= g_fSaySoundsInterval && g_fSaySoundsInterval != 0.0) {
+        CPrintToChat(client, "%t%t", "ss prefix", "ss dont spam", buff);
+        if(g_bSaySoundsCancelChat) {
+            return Plugin_Handled;
+        }
         return Plugin_Continue;
     }
     
@@ -498,7 +498,7 @@ public Action CommandSSVolume(int client, int args) {
         char arg1[4];
         GetCmdArg(1, arg1, sizeof(arg1));
         if(!IsOnlyDicimal(arg1)) {
-            CPrintToChat(client, "TODO() Invalid arguments.");
+            CPrintToChat(client, "%t%t", "ss prefix", "ss cmd invalid arguments");
             return Plugin_Handled;
         }
 
@@ -506,7 +506,7 @@ public Action CommandSSVolume(int client, int args) {
         char buff[6];
         FloatToString(g_fPlayerSoundVolume[client], buff, sizeof(buff));
         SetClientCookie(client, g_hSoundVolumeCookie, buff);
-        CPrintToChat(client, "TODO() Success to set volume");
+        CPrintToChat(client, "%t%t", "ss prefix", "ss cmd set volume", arg1);
         return Plugin_Handled;
     }
 
@@ -519,19 +519,19 @@ public Action CommandSSSpeed(int client, int args) {
         char arg1[4];
         GetCmdArg(1, arg1, sizeof(arg1));
         if(!IsOnlyDicimal(arg1)) {
-            CPrintToChat(client, "TODO() Invalid arguments.");
+            CPrintToChat(client, "%t%t", "ss prefix", "ss cmd invalid arguments");
             return Plugin_Handled;
         }
 
         int arg = StringToInt(arg1);
         if(arg > SAYSOUND_PITCH_MAX || SAYSOUND_PITCH_MIN > arg) {
-            CPrintToChat(client, "TODO() Value out of range");
+            CPrintToChat(client, "%t%t", "ss prefix", "ss cmd out of range", float(arg));
             return Plugin_Handled;
         }
 
         g_iPlayerSoundPitch[client] = arg;
         SetClientCookie(client, g_hSoundPitchCookie, arg1);
-        CPrintToChat(client, "TODO() Success to set speed");
+        CPrintToChat(client, "%t%t", "ss prefix", "ss cmd set speed", arg1);
         return Plugin_Handled;
     }
 
@@ -548,14 +548,14 @@ public Action CommandSSSeconds(int client, int args) {
         strcopy(check, sizeof(check), arg1);
         ReplaceString(check, sizeof(check), ".", "");
         if(!IsOnlyDicimal(check)) {
-            CPrintToChat(client, "TODO() Seconds cleared");
+            CPrintToChat(client, "%t%t", "ss prefix", "ss cmd length cleared");
             SetClientCookie(client, g_hSoundLengthCookie, "-1.0");
             g_fPlayerSoundLength[client] = -1.0;
             return Plugin_Handled;
         }
         g_fPlayerSoundLength[client] = StringToFloat(arg1);
         SetClientCookie(client, g_hSoundLengthCookie, arg1);
-        CPrintToChat(client, "TODO() Success to set length");
+        CPrintToChat(client, "%t%t", "ss prefix", "ss cmd set length", arg1);
         return Plugin_Handled;
     }
 
@@ -566,7 +566,7 @@ public Action CommandSSSeconds(int client, int args) {
 public Action CommandSSToggle(int client, int args) {
     g_bPlayerSoundDisabled[client] = !g_bPlayerSoundDisabled[client];
     SetClientCookie(client, g_hSoundToggleCookie, g_bPlayerSoundDisabled[client] ? "1" : "0");
-    CPrintToChat(client, "TODO() Success to toggle say sound: %s", g_bPlayerSoundDisabled[client] ? "1" : "0");
+    CPrintToChat(client, "%t%t", "ss prefix", g_bPlayerSoundDisabled[client] ? "ss cmd toggle enable" : "ss cmd toggle disable");
     return Plugin_Handled;
 }
 
@@ -600,7 +600,9 @@ public Action CommandSBanUser(int client, int args) {
         if(targetCount == 1) {
             g_bIsPlayerRestricted[targetList[0]] = true;
             SetClientCookie(targetList[0], g_hSoundRestrictionCookie, "1");
-            CPrintToChat(client, "TODO() Banned user %N", targetList[0]);
+            char buff[MAX_TARGET_LENGTH];
+            GetClientName(targetList[0], buff, sizeof(buff));
+            CPrintToChat(client, "%t%t", "ss prefix", "ss user banned", buff);
             return Plugin_Handled;
         }
         //TODO Ban menu with suggesion.
@@ -637,7 +639,9 @@ public Action CommandSUnBanUser(int client, int args) {
         if(targetCount == 1) {
             g_bIsPlayerRestricted[targetList[0]] = false;
             SetClientCookie(targetList[0], g_hSoundRestrictionCookie, "0");
-            CPrintToChat(client, "TODO() Unbanned user %N", targetList[0]);
+            char buff[MAX_TARGET_LENGTH];
+            GetClientName(targetList[0], buff, sizeof(buff));
+            CPrintToChat(client, "%t%t", "ss prefix", "ss user unbanned", buff);
             return Plugin_Handled;
         }
         //TODO unban menu with suggesion.
@@ -657,22 +661,22 @@ void DisplaySettingsMenu(int client)
     Menu prefmenu = CreateMenu(SoundSettingHandler, MENU_ACTIONS_DEFAULT);
 
     char menuTitle[64];
-    Format(menuTitle, sizeof(menuTitle), "TODO() Sound setting menu");
+    Format(menuTitle, sizeof(menuTitle), "%t", "ss menu title");
     prefmenu.SetTitle(menuTitle);
 
     char isRestricted[64], restrectionExpireDate[64], soundDisabled[64], soundVolume[64], soundLength[64] , soundPitch[64];
 
-    Format(isRestricted, sizeof(isRestricted), "Restricted: %s", g_bIsPlayerRestricted[client] ? "Yes" : "No");
+    Format(isRestricted, sizeof(isRestricted), "%t%t","ss menu restricted", g_bIsPlayerRestricted[client] ? "Yes" : "No");
     prefmenu.AddItem("ss_pref_is_restricted", isRestricted);
     if(g_bIsPlayerRestricted[client]) {
-        Format(restrectionExpireDate, sizeof(restrectionExpireDate), "Expire in: %f", g_fPlayerRestrictionTime[client]);
+        Format(restrectionExpireDate, sizeof(restrectionExpireDate), "%t%f","ss menu expire", g_fPlayerRestrictionTime[client]);
         prefmenu.AddItem("ss_pref_restriction_expire", restrectionExpireDate);
     }
 
-    Format(soundDisabled, sizeof(soundDisabled), "Disable saysounds: %s", g_bPlayerSoundDisabled[client] ? "Yes" : "No");
+    Format(soundDisabled, sizeof(soundDisabled), "%t%t","ss menu disable saysounds", g_bPlayerSoundDisabled[client] ? "Yes" : "No");
     prefmenu.AddItem("ss_pref_disable", soundDisabled);
 
-    Format(soundVolume, sizeof(soundVolume), "Volume: %.0f", g_fPlayerSoundVolume[client] * 100);
+    Format(soundVolume, sizeof(soundVolume), "%t%.0f%","ss menu volume", g_fPlayerSoundVolume[client] * 100);
     switch (RoundToZero((g_fPlayerSoundVolume[client]*100)))
     {
         case 10: { prefmenu.AddItem("ss_pref_volume_100", soundVolume);}
@@ -688,8 +692,7 @@ void DisplaySettingsMenu(int client)
         default: { prefmenu.AddItem("ss_pref_volume_100", soundVolume);}
     }
 
-    Format(soundLength, sizeof(soundLength), "Length: %.1f", g_fPlayerSoundLength[client]);
-    CPrintToChatAll("%d", RoundToZero(g_fPlayerSoundLength[client]));
+    Format(soundLength, sizeof(soundLength), "%t%.1fs","ss menu length", g_fPlayerSoundLength[client]);
     switch (RoundToZero(g_fPlayerSoundLength[client]))
     {
         case 1: { prefmenu.AddItem("ss_pref_length_0", soundLength);}
@@ -698,12 +701,12 @@ void DisplaySettingsMenu(int client)
         case 4: { prefmenu.AddItem("ss_pref_length_3", soundLength);}
         case 5: { prefmenu.AddItem("ss_pref_length_4", soundLength);}
         default: {
-            Format(soundLength, sizeof(soundLength), "Length: Disabled");
+            Format(soundLength, sizeof(soundLength), "%tDisabled", "ss menu length");
             prefmenu.AddItem("ss_pref_length_5", soundLength);
         }
     }
 
-    Format(soundPitch, sizeof(soundPitch), "Speed: %d", g_iPlayerSoundPitch[client]);
+    Format(soundPitch, sizeof(soundPitch), "%t%d%", "ss menu speed",g_iPlayerSoundPitch[client]);
     switch (g_iPlayerSoundPitch[client])
     {
         case 50: { prefmenu.AddItem("ss_pref_speed_150", soundPitch);}
