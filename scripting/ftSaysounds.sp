@@ -517,6 +517,7 @@ public Action CommandSSSeconds(int client, int args) {
         ReplaceString(check, sizeof(check), ".", "");
         if(!IsOnlyDicimal(check)) {
             CPrintToChat(client, "TODO() Seconds cleared");
+            SetClientCookie(client, g_hSoundLengthCookie, "-1.0");
             g_fPlayerSoundLength[client] = -1.0;
             return Plugin_Handled;
         }
