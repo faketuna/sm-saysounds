@@ -1,810 +1,445 @@
 #include <sourcemod>
 #include <sdktools>
+#include <sdktools_sound>
 #include <clientprefs>
+#include <multicolors>
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
 
 #pragma semicolon 1
+#pragma newdecls required
 
 #define PLUGIN_VERSION "1.5"
 
-#define SAYSOUND_FLAG_ADMIN		(1 << 0)
-#define SAYSOUND_FLAG_DOWNLOAD		(1 << 1)
-#define SAYSOUND_FLAG_CUSTOMVOLUME	(1 << 2)
-#define SAYSOUND_FLAG_CUSTOMLENGTH	(1 << 3)
+#define SAYSOUND_FLAG_DOWNLOAD        (1 << 0)
+#define SAYSOUND_FLAG_CUSTOMVOLUME    (1 << 1)
+#define SAYSOUND_FLAG_CUSTOMLENGTH    (1 << 2)
 
-#define SAYSOUND_TRIGGER_SIZE 64
+#define SAYSOUND_SOUND_NAME_SIZE 64
 
-new bool:gb_lamesoundengine;
+#define SAYSOUND_PITCH_MAX 200
+#define SAYSOUND_PITCH_MIN 50
 
-enum
+#define SAYSOUND_LENGTH_MAX 10
+#define SAYSOUND_LENGTH_MIN 0
+
+#define SAYSOUND_PREFIX_SPEED "@"
+#define SAYSOUND_PREFIX_LENGTH "%"
+
+ConVar g_cSaySoundsEnabled;
+ConVar g_cSaySoundsInterval;
+ConVar g_cSaySoundsCancelChat;
+
+Handle g_hSoundToggleCookie;
+Handle g_hSoundVolumeCookie;
+Handle g_hSoundLengthCookie;
+Handle g_hSoundPitchCookie;
+Handle g_hSoundRestrictionCookie;
+Handle g_hSoundRestrictionTimeCookie;
+
+// Plugin cvar related.
+bool g_bPluginEnabled;
+bool g_bSaySoundsCancelChat;
+float g_fSaySoundsInterval;
+
+// Plugin logic related.
+float g_fLastSaySound[MAXPLAYERS+1];
+
+// Client prefs (Player setting) related.
+bool g_bIsPlayerRestricted[MAXPLAYERS+1];
+bool g_fPlayerSoundDisabled[MAXPLAYERS+1];
+float g_fPlayerSoundVolume[MAXPLAYERS+1];
+float g_fPlayerSoundLength[MAXPLAYERS+1];
+float g_fPlayerRestrictionTime[MAXPLAYERS+1];
+int g_iPlayerSoundPitch[MAXPLAYERS+1];
+
+// Internal
+Handle g_hPath;
+Handle g_hSoundName;
+Handle g_hLength;
+Handle g_hVolume;
+Handle g_hFlags;
+
+
+public Plugin myinfo = 
 {
-	SAYSOUND_CLIENT = 0,
-	SAYSOUND_DONOR,
-	SAYSOUND_ADMIN
-}
-new g_access[MAXPLAYERS+1];
-
-enum
-{
-	SAYSOUND_PREF_DISABLED = 0,
-	SAYSOUND_PREF_BANNED
-}
-new g_clientprefs[MAXPLAYERS+1][3];
-
-new g_serial;
-new g_soundcount[MAXPLAYERS+1];
-new Float:gf_LastSaysound[MAXPLAYERS+1];
-
-public Plugin:myinfo = 
-{
-	name = "Say Sounds FT",
-	author = "Friagram, faketuna",
-	description = "Plays sound files",
-	version = PLUGIN_VERSION,
-	url = "http://steamcommunity.com/groups/poniponiponi"
+    name = "Say Sounds FT",
+    author = "faketuna",
+    description = "Plays sound files",
+    version = PLUGIN_VERSION,
+    url = "https://short.f2a.dev/s/github"
 };
 
-new Handle:gh_flags, Handle:gh_trigger, Handle:gh_paths, Handle:gh_length, Handle:gh_volume, Handle:gh_recentsounds;
-new Handle:gh_cookie;
-new Handle:gh_menu, Handle:gh_adminmenu;
-new Handle:hAdminMenu = INVALID_HANDLE;
-
-new bool:gb_enabled;
-new g_saysound_limit[3];
-new Float:gf_saysound_delay[3];
-new bool:gb_preventspam[3];
-new bool:gb_saysound_round;
-new bool:gb_saysound_sentence;
-new bool:gb_saysound_blocktrigger;
-new g_saysound_excludecount;
-new bool:gb_playingame;
-new Float:gf_saysound_volume;
-
-public OnPluginStart()
+public void OnPluginStart()
 {
-	switch(GetEngineVersion())
-	{
-		case Engine_CSGO, Engine_DOTA: gb_lamesoundengine = true;
-	}
+    g_cSaySoundsEnabled            = CreateConVar("sm_saysounds_enable", "1", "Toggles say sounds globaly", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_cSaySoundsInterval        = CreateConVar("sm_saysounds_interval", "2.0", "Time between each sound to trigger per player. 0.0 to disable", FCVAR_NONE, true, 0.0, true, 30.0);
+    g_cSaySoundsCancelChat        = CreateConVar("sm_saysounds_cancel", "1", "Cancel the chat message when match with saysound.", FCVAR_NONE, true, 0.0, true, 1.0);
 
-	// ***Load Translations **
-	LoadTranslations("common.phrases");
+    g_cSaySoundsEnabled.AddChangeHook(OnCvarsChanged);
+    g_cSaySoundsInterval.AddChangeHook(OnCvarsChanged);
+    g_cSaySoundsCancelChat.AddChangeHook(OnCvarsChanged);
 
-	CreateConVar("sm_saysounds_redux_version", PLUGIN_VERSION, "Say Sounds Version", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY|FCVAR_DONTRECORD);
+    g_hSoundVolumeCookie            = RegClientCookie("cookie_ss_volume", "Saysound volume", CookieAccess_Protected);
+    g_hSoundLengthCookie            = RegClientCookie("cookie_ss_length", "Saysound length", CookieAccess_Protected);
+    g_hSoundPitchCookie             = RegClientCookie("cookie_ss_pitch", "Saysound pitch", CookieAccess_Protected);
+    g_hSoundRestrictionCookie       = RegClientCookie("cookie_ss_restriction", "Saysound restriction", CookieAccess_Protected);
+    g_hSoundRestrictionTimeCookie   = RegClientCookie("cookie_ss_restriction_time", "Saysound restriction time", CookieAccess_Protected);
+    g_hSoundToggleCookie            = RegClientCookie("cookie_ss_toggle", "Saysound toggle", CookieAccess_Protected);
 
-	decl Handle:cvar;
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_enable","1","Turns Sounds On/Off", FCVAR_PLUGIN, true, 0.0, true, 1.0), Cvar_EnableChanged);
-	gb_enabled = GetConVarBool(cvar);
+    AddCommandListener(CommandListenerSay, "say");
+    AddCommandListener(CommandListenerSay, "say2");
+    AddCommandListener(CommandListenerSay, "say_team");
+    ParseConfig();
 
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_sound_limit","10","Maximum sounds per person (0 for unlimited)", FCVAR_PLUGIN, true, 0.0, false, 0.0), Cvar_LimitChanged);
-	g_saysound_limit[0] = GetConVarInt(cvar);
-	
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_donor_limit","15","Maximum sounds for saysounds_donor (0 for unlimited)", FCVAR_PLUGIN, true, 0.0, false, 0.0), Cvar_DonorLimitChanged);
-	g_saysound_limit[1] = GetConVarInt(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_admin_limit","0","Maximum sounds per saysounds_admin (0 for unlimited)", FCVAR_PLUGIN, true, 0.0, false, 0.0), Cvar_AdminLimitChanged);
-	g_saysound_limit[2] = GetConVarInt(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_sound_delay","5.0","Time between each sound trigger, 0.0 to disable checking", FCVAR_PLUGIN, true, 0.0, false, 0.0), Cvar_DelayChanged);
-	gf_saysound_delay[0] = GetConVarFloat(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_donor_delay","3.0","User flags to bypass the Time between sounds check", FCVAR_PLUGIN, true, 0.0, false, 0.0), Cvar_DonorDelayChanged);
-	gf_saysound_delay[1] = GetConVarFloat(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_admin_delay","1.0","User flags to bypass the Time between sounds check", FCVAR_PLUGIN, true, 0.0, false, 0.0), Cvar_AdminDelayChanged);
-	gf_saysound_delay[2] = GetConVarFloat(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_round", "0", "If set, sm_saysoundhe_sound_limit is the limit per round instead of per map", FCVAR_PLUGIN, true, 0.0, true, 1.0), Cvar_RoundChanged);
-	gb_saysound_round = GetConVarBool(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_sound_sentence", "1", "When set, will trigger sounds if keyword is embedded in a sentence", FCVAR_PLUGIN, true, 0.0, true, 1.0), Cvar_SentenceChanged);
-	gb_saysound_sentence = GetConVarBool(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_block_trigger", "0", "If set, block the sound trigger to be displayed in the chat window", FCVAR_PLUGIN, true, 0.0, true, 1.0), Cvar_BlockTriggerChanged);
-	gb_saysound_blocktrigger = GetConVarBool(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_exclude", "2", "Number of sounds that must be different before this sound can be replayed", FCVAR_PLUGIN, true, 0.0, false, 0.0), Cvar_ExcludeChanged);
-	g_saysound_excludecount = GetConVarInt(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_exclude_client", "1", "If set, clients obey exclude count", FCVAR_PLUGIN, true, 0.0, true, 1.0), Cvar_SpamClientChanged);
-	gb_preventspam[0] = GetConVarBool(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_exclude_donor", "1", "If set, donors obey exclude count", FCVAR_PLUGIN, true, 0.0, true, 1.0), Cvar_SpamDonorChanged);
-	gb_preventspam[1] = GetConVarBool(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_exclude_admin", "0", "If set, admins obey exclude count", FCVAR_PLUGIN, true, 0.0, true, 1.0), Cvar_SpamAdminChanged);
-	gb_preventspam[2] = GetConVarBool(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_playingame","0.0","Play as an emit sound or direct (0 / 1)",FCVAR_PLUGIN,true,0.0,true,1.0), Cvar_PlayIngameChanged);
-	gb_playingame = GetConVarBool(cvar);
-
-	HookConVarChange(cvar = CreateConVar("sm_saysounds_volume","1.0","Volume setting for Say Sounds (0.0 <= x <= 1.0)",FCVAR_PLUGIN,true,0.0,true,1.0), Cvar_VolumeChanged);
-	gf_saysound_volume = GetConVarFloat(cvar);
-
-	gh_cookie = RegClientCookie("saysounds_pref", "saysounds data", CookieAccess_Protected);
-	SetCookieMenuItem(SaysoundClientPref, 0, "Say Sounds Settings");
-
-	RegAdminCmd("sm_sound_ban", Command_Sound_Ban, ADMFLAG_BAN, "sm_sound_ban <user> : Bans a player from using sounds");
-	RegAdminCmd("sm_sound_reset", Command_Sound_Reset, ADMFLAG_GENERIC, "sm_sound_reset <user | all> : Resets sound quota for user, or everyone if all");
-	RegConsoleCmd("sm_soundlist", Command_Sound_Menu, "Display a menu sounds to play");
-	RegConsoleCmd("sm_sounds", Command_Sound_Toggle, "Toggle Saysounds");
-
-	AddCommandListener(Command_Say, "say");
-	AddCommandListener(Command_Say, "say2");
-	AddCommandListener(Command_Say, "say_team");
-
-	HookEvent("teamplay_round_start", Event_RoundStart);
-
-	new Handle:topmenu;
-	if (LibraryExists("adminmenu") && ((topmenu = GetAdminTopMenu()) != INVALID_HANDLE))
-	{
-		OnAdminMenuReady(topmenu);
-	}
-
-	PrepareSounds();
-	
-	for(new client = 1; client <= MaxClients; client++)
-	{
-		if(IsClientConnected(client) && IsClientAuthorized(client) && !IsFakeClient(client))
-		{
-			OnClientPostAdminCheck(client);
-			if(AreClientCookiesCached(client))
-			{
-				OnClientCookiesCached(client);
-			}
-		}
-	}
-}
-
-public Cvar_EnableChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gb_enabled = bool:StringToInt(newValue);
-}
-public Cvar_LimitChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	g_saysound_limit[0] = StringToInt(newValue);
-}
-public Cvar_DonorLimitChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	g_saysound_limit[1] = StringToInt(newValue);
-}
-public Cvar_AdminLimitChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	g_saysound_limit[2] = StringToInt(newValue);
-}
-public Cvar_DelayChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gf_saysound_delay[0] = StringToFloat(newValue);
-}
-public Cvar_DonorDelayChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gf_saysound_delay[1] = StringToFloat(newValue);
-}
-public Cvar_AdminDelayChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gf_saysound_delay[2] = StringToFloat(newValue);
-}
-public Cvar_RoundChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gb_saysound_round = bool:StringToInt(newValue);
-}
-public Cvar_SentenceChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gb_saysound_sentence = bool:StringToInt(newValue);
-}
-public Cvar_BlockTriggerChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gb_saysound_blocktrigger = bool:StringToInt(newValue);
-}
-public Cvar_ExcludeChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	g_saysound_excludecount = StringToInt(newValue);
-	ClearArray(gh_recentsounds);
-}
-public Cvar_SpamClientChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gb_preventspam[0] = bool:StringToInt(newValue);
-}
-public Cvar_SpamDonorChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gb_preventspam[1] = bool:StringToInt(newValue);
-}
-public Cvar_SpamAdminChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gb_preventspam[2] = bool:StringToInt(newValue);
-}
-
-public Cvar_PlayIngameChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gb_playingame = bool:StringToInt(newValue);
-	if(gb_playingame)
-	{
-		PrecacheSounds();
-	}
-}
-public Cvar_VolumeChanged(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	gf_saysound_volume = StringToFloat(newValue);
-}
-
-public OnClientCookiesCached(client)
-{
-	if(!IsFakeClient(client))
-	{
-		decl String:cookie[32];
-		new String:segment[4][4];
-		GetClientCookie(client, gh_cookie, cookie, sizeof(cookie));
-		ExplodeString(cookie, ";", segment, 4, 4);
-
-		g_clientprefs[client][SAYSOUND_PREF_DISABLED] = bool:StringToInt(segment[0]);
-		g_clientprefs[client][SAYSOUND_PREF_BANNED] = bool:StringToInt(segment[1]);
-
-		if(StringToInt(segment[2]) == g_serial)
-		{
-			g_soundcount[client] = StringToInt(segment[3]);
-		}
-		else
-		{
-			g_soundcount[client] = 0;
-		}
-	}
-}
-
-public OnClientDisconnect(client)
-{
-	if(!IsFakeClient(client))
-	{
-		StoreClientCookies(client);
-	}
-}
-
-StoreClientCookies(client)
-{
-	if(AreClientCookiesCached(client))
-	{
-		decl String:cookie[32];
-		FormatEx(cookie, sizeof(cookie), "%d;%d;%d;%d",
-			g_clientprefs[client][SAYSOUND_PREF_DISABLED], g_clientprefs[client][SAYSOUND_PREF_BANNED],
-			g_serial, g_soundcount[client]);
-
-		SetClientCookie(client, gh_cookie, cookie);
-	}
-}
-
-public OnMapStart()
-{
-	ResetClients();
-
-	PrecacheSounds();
-}
-
-ResetClients()
-{
-	g_serial++;
-	ClearArray(gh_recentsounds);
-	if (gb_saysound_round)
-	{
-		for (new client = 1; client <= MaxClients; client++)
-		{
-			g_soundcount[client] = 0;
-		}
-	}
-}
-
-PrecacheSounds()
-{
-	decl String:soundfile[PLATFORM_MAX_PATH];
-	decl String:buffer[PLATFORM_MAX_PATH];
-	decl Handle:hpath;
-	decl flags;
-	
-	for(new i = GetArraySize(gh_paths) - 1; i >= 0; i--)
-	{
-		hpath = GetArrayCell(gh_paths, i);
-		flags = GetArrayCell(gh_flags, i);
-
-		for(new k = GetArraySize(hpath) - 1; k >= 0; k--)
-		{
-			GetArrayString(hpath, k, soundfile, sizeof(soundfile));
-			if(gb_playingame)
-			{
-				if(gb_lamesoundengine)
-				{
-					AddToStringTable(FindStringTable( "soundprecache" ), soundfile);
-				}
-				else
-				{
-					PrecacheSound(soundfile, true);
-				}
-			}
-
-			if(flags & SAYSOUND_FLAG_DOWNLOAD)
-			{
-				FormatEx(buffer, sizeof(buffer), "sound/%s", soundfile);
-				AddFileToDownloadsTable(buffer);
-			}
-		}
-	}
-}
-
-PrepareSounds()
-{
-	gh_flags = CreateArray();
-	gh_trigger = CreateArray(ByteCountToCells(SAYSOUND_TRIGGER_SIZE));
-	gh_paths = CreateArray(ByteCountToCells(PLATFORM_MAX_PATH));
-	gh_length = CreateArray();
-	gh_volume = CreateArray();
-	gh_recentsounds = CreateArray();
-
-	decl String:soundlistfile[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM,soundlistfile,sizeof(soundlistfile),"configs/ftSaysounds.cfg");
-	if(!FileExists(soundlistfile))
-	{
-		SetFailState("ftSaysounds.cfg not parsed...file doesnt exist!");
-	}
-	else
-	{
-		new Handle:listfile = CreateKeyValues("soundlist");
-		FileToKeyValues(listfile,soundlistfile);
-		KvRewind(listfile);
-		if (KvGotoFirstSubKey(listfile))
-		{
-			gh_menu = CreateMenu(menu_handler);
-			gh_adminmenu = CreateMenu(menu_handler);
-			
-			SetMenuTitle(gh_menu, "Saysounds\n ");
-			SetMenuTitle(gh_adminmenu, "Saysounds\n ");
-		
-			decl String:filelocation[PLATFORM_MAX_PATH], String:item[8], String:trigger[SAYSOUND_TRIGGER_SIZE];
-			decl Handle:soundpath;
-			decl flags;
-			decl Float:duration, Float:volume;
-
-			do
-			{
-				KvGetString(listfile, "file", filelocation, sizeof(filelocation), "");
-				if(filelocation[0] != '\0')
-				{
-					soundpath = CreateArray(ByteCountToCells(PLATFORM_MAX_PATH));
-					KvGetSectionName(listfile, trigger, sizeof(trigger));
-
-					flags = 0;
-					if(KvGetNum(listfile, "admin", 0))
-					{
-						flags |= SAYSOUND_FLAG_ADMIN;
-						
-						AddMenuItem(gh_adminmenu, trigger, trigger);
-					}
-					else
-					{
-						AddMenuItem(gh_adminmenu, trigger, trigger);
-						AddMenuItem(gh_menu, trigger, trigger);
-					}
-
-					if(KvGetNum(listfile, "download", 1))
-					{
-						flags |= SAYSOUND_FLAG_DOWNLOAD;
-					}
-
-					duration = KvGetFloat(listfile, "duration", 0.0);
-					if(duration)
-					{
-						flags |= SAYSOUND_FLAG_CUSTOMLENGTH;
-					}
-
-					volume = KvGetFloat(listfile, "volume", 0.0);
-					if(volume)
-					{
-						flags |= SAYSOUND_FLAG_CUSTOMVOLUME;
-						if(volume > 2.0)
-						{
-							volume = 2.0;
-						}
-					}
-
-					PushArrayCell(gh_paths, soundpath);
-					PushArrayString(gh_trigger, trigger);
-					PushArrayCell(gh_length, duration);
-					PushArrayCell(gh_volume, volume);
-					PushArrayCell(gh_flags, flags);
-					
-					if(gb_lamesoundengine)
-					{
-						Format(filelocation, sizeof(filelocation), "*%s", filelocation);	// prefix asterisk for newer games
-					}
-
-					PushArrayString(soundpath, filelocation);
-
-					for (new i = 2;; i++)
-					{
-						FormatEx(item, sizeof(item),  "file%d", i);
-						KvGetString(listfile, item, filelocation, sizeof(filelocation), "");
-						if (filelocation[0] == '\0')
-						{
-							break;
-						}
-						PushArrayString(soundpath, filelocation);
-					}
-				}
-			}
-			while (KvGotoNextKey(listfile));
-		}
-		else
-		{
-			SetFailState("saysounds.cfg not parsed...No subkeys found!");
-		}
-
-		CloseHandle(listfile);
-	}
-}
-
-
-public Action:Event_RoundStart(Handle:event,const String:name[],bool:dontBroadcast)
-{
-	ResetClients();
-
-	return Plugin_Continue;
-}
-
-public OnClientPostAdminCheck(client)		// I'm not going to bother checking admin rehashing
-{
-	if(CheckCommandAccess(client, "saysounds_admin", ADMFLAG_CHAT, true))
-	{
-		g_access[client] = SAYSOUND_ADMIN;
-	}
-	else if(CheckCommandAccess(client, "saysounds_donor", ADMFLAG_RESERVATION, true))
-	{
-		g_access[client] = SAYSOUND_DONOR;
-	}
-	else
-	{
-		g_access[client] = SAYSOUND_CLIENT;
-	}
-}
-
-public OnRebuildAdminCache(AdminCachePart:part)
-{
-    if(part == AdminCache_Admins)
-    {
-        CreateTimer(1.0, Timer_WaitForAdminCacheReload, _, TIMER_FLAG_NO_MAPCHANGE);
-    }
-}
-
-public Action:Timer_WaitForAdminCacheReload(Handle:timer)
-{
-    for(new client = 1; client <= MaxClients; client++)
-    {
-        if(IsClientConnected(client) && IsClientAuthorized(client) && !IsFakeClient(client))
-        {
-            OnClientPostAdminCheck(client);
+    for(int i = 1; i <= MaxClients; i++) {
+        if(IsClientConnected(i)) {
+            if(AreClientCookiesCached(i)) {
+                OnClientCookiesCached(i);
+            }
         }
     }
 }
 
-public Action:Command_Say(client, const String:command[], argc)
-{
-	static String:speech[256];
-	static startidx;
 
-	if(gb_enabled && !g_clientprefs[client][SAYSOUND_PREF_DISABLED] && !g_clientprefs[client][SAYSOUND_PREF_BANNED])		// enabled, they can emit sounds to others
-	{
-		if (GetCmdArgString(speech, sizeof(speech)) >= 1)
-		{
-			startidx = 0;
-			
-			if (speech[strlen(speech)-1] == '"')
-			{
-				speech[strlen(speech)-1] = '\0';
-				startidx = 1;
-			}
+public void OnClientCookiesCached(int client) {
+    if (IsFakeClient(client)) {
+        return;
+    }
 
-			if (strcmp(command, "say2", false) == 0)
-			{
-				startidx += 4;
-			}
+    char cookieValue[128];
+    GetClientCookie(client, g_hSoundVolumeCookie, cookieValue, sizeof(cookieValue));
 
-			return  Action:AttemptSaySound(client, speech[startidx]);
-		}
-	}	
-	return Plugin_Continue;
+    if (!StrEqual(cookieValue, "")) {
+        g_fPlayerSoundVolume[client] = StringToFloat(cookieValue);
+    } else {
+        g_fPlayerSoundVolume[client] = 1.0;
+        SetClientCookie(client, g_hSoundVolumeCookie, "1.0");
+    }
+
+
+    GetClientCookie(client, g_hSoundLengthCookie, cookieValue, sizeof(cookieValue));
+
+    if (!StrEqual(cookieValue, "")) {
+        g_fPlayerSoundLength[client] = StringToFloat(cookieValue);
+    } else {
+        g_fPlayerSoundLength[client] = 0.0;
+        SetClientCookie(client, g_hSoundLengthCookie, "0.0");
+    }
+    
+
+    GetClientCookie(client, g_hSoundPitchCookie, cookieValue, sizeof(cookieValue));
+
+    if (!StrEqual(cookieValue, "")) {
+        g_iPlayerSoundPitch[client] = StringToInt(cookieValue);
+    } else {
+        g_iPlayerSoundPitch[client] = 100;
+        SetClientCookie(client, g_hSoundPitchCookie, "100");
+    }
+
+
+    GetClientCookie(client, g_hSoundRestrictionCookie, cookieValue, sizeof(cookieValue));
+
+    if (!StrEqual(cookieValue, "")) {
+        g_bIsPlayerRestricted[client] = view_as<bool>(StringToInt(cookieValue));
+    } else {
+        g_bIsPlayerRestricted[client] = false;
+        SetClientCookie(client, g_hSoundRestrictionCookie, "false");
+    }
+
+
+    GetClientCookie(client, g_hSoundRestrictionTimeCookie, cookieValue, sizeof(cookieValue));
+
+    if (!StrEqual(cookieValue, "")) {
+        g_fPlayerRestrictionTime[client] = StringToFloat(cookieValue);
+    } else {
+        g_fPlayerRestrictionTime[client] = 0.0;
+        SetClientCookie(client, g_hSoundRestrictionTimeCookie, "0.0");
+    }
+
+
+    GetClientCookie(client, g_hSoundToggleCookie, cookieValue, sizeof(cookieValue));
+
+    if (!StrEqual(cookieValue, "")) {
+        g_fPlayerSoundDisabled[client] = view_as<bool>(StringToInt(cookieValue));
+    } else {
+        g_fPlayerSoundDisabled[client] = false;
+        SetClientCookie(client, g_hSoundToggleCookie, "false");
+    }
 }
 
-public Action:AttemptSaySound(client, String:sound[])
-{
-	static String:buffer[PLATFORM_MAX_PATH];
-	static size, flags;
-	static Handle:hpath;
-
-	if(g_saysound_limit[g_access[client]])																			// is there a limit, are they at it
-	{
-		if(g_soundcount[client] >= g_saysound_limit[g_access[client]])
-		{
-			return Plugin_Continue;
-		}
-	}
-
-	new Float:time = GetEngineTime();																					// are they experiencing delay
-	if(time > gf_LastSaysound[client])
-	{
-		new bool:adminonly;
-
-		size = GetArraySize(gh_paths);																				// traverse forward
-		for(new i; i < size; i++)
-		{
-			GetArrayString(gh_trigger, i, buffer, sizeof(buffer));
-			if((gb_saysound_sentence && StrContains(sound, buffer, false) >= 0) || strcmp(sound, buffer, false) == 0)
-			{
-				flags = GetArrayCell(gh_flags, i);
-				if((flags & SAYSOUND_FLAG_ADMIN) && g_access[client] != SAYSOUND_ADMIN)
-				{
-					adminonly = true;
-
-					continue;																					// perhaps there is something similar they can use
-				}
-
-				if(gb_preventspam[g_access[client]])
-				{
-					if(FindValueInArray(gh_recentsounds, i) != -1)
-					{
-						if(client && IsClientInGame(client))
-						{
-							PrintToChat(client, "[SM] this sound was recently played");
-						}
-						return Plugin_Continue;
-					}
-				}
-
-				hpath = GetArrayCell(gh_paths, i);
-				GetArrayString(hpath, GetRandomInt(0, GetArraySize(hpath)-1), buffer, sizeof(buffer));
-
-				DoSaySound(buffer, (flags & SAYSOUND_FLAG_CUSTOMVOLUME) ? (Float:GetArrayCell(gh_volume, i)) : gf_saysound_volume);
-
-				if(PushArrayCell(gh_recentsounds, i) >= g_saysound_excludecount)
-				{
-					RemoveFromArray(gh_recentsounds, 0);
-				}
-
-				if(gf_saysound_delay[g_access[client]])
-				{
-					if(flags & SAYSOUND_FLAG_CUSTOMLENGTH)
-					{
-						gf_LastSaysound[client] = time + Float:GetArrayCell(gh_length, i);
-					}
-					else
-					{
-						gf_LastSaysound[client] = time + gf_saysound_delay[g_access[client]];
-					}
-				}
-				
-				g_soundcount[client]++;
-				DisplayRemainingSounds(client);
-				
-				if(gb_saysound_blocktrigger)
-				{
-					return Plugin_Handled;
-				}
-
-				return Plugin_Continue;
-			}
-		}
-		
-		if(adminonly)
-		{
-			if(client && IsClientInGame(client))
-			{
-				PrintToChat(client, "[SM] you do not have access to this sound");
-			}
-		}
-	}
-
-	return Plugin_Continue;
+public void OnConfigsExecuted() {
+    SyncConVarValues();
 }
 
-DisplayRemainingSounds(client)
-{
-	if(g_saysound_limit[g_access[client]])
-	{
-		if(client && IsClientInGame(client))
-		{
-			PrintToChat(client, "[SM] you have used %d/%d sounds", g_soundcount[client], g_saysound_limit[g_access[client]]);
-		}
-	}
+public void OnMapStart() {
+    PrecacheSounds();
 }
 
-DoSaySound(String:soundfile[], Float:volume)
-{
-	for(new target = 1; target<=MaxClients; target++)
-	{
-		if(IsClientInGame(target) && !g_clientprefs[target][SAYSOUND_PREF_DISABLED])
-		{
-			if(gb_playingame)
-			{
-				if(volume > 1.0)
-				{
-					volume *= 0.5;
-					EmitSoundToClient(target, soundfile, .volume = volume);
-					EmitSoundToClient(target, soundfile, .volume = volume);
-				}
-				else
-				{
-					EmitSoundToClient(target, soundfile, .volume = volume);
-				}
-			}
-			else
-			{
-				if(volume >= 2.0)
-				{
-					ClientCommand(target, "playgamesound \"%s\";playgamesound \"%s\"", soundfile,soundfile);
-				}
-				else
-				{
-					ClientCommand(target, "playgamesound \"%s\"",soundfile);
-				}
-			}
-		}
-	}
+public void SyncConVarValues() {
+    g_bPluginEnabled        = GetConVarBool(g_cSaySoundsEnabled);
+    g_bSaySoundsCancelChat  = GetConVarBool(g_cSaySoundsInterval);
+    g_fSaySoundsInterval    = GetConVarFloat(g_cSaySoundsInterval);
 }
 
-public Action:Command_Sound_Reset(client, args)
-{
-	if (args < 1)
-	{
-		ReplyToCommand(client, "[sm] usage: sm_sound_reset <target>");
-		return Plugin_Handled;
-	}
-
-	new String:arg[64];
-	GetCmdArg(1, arg, sizeof(arg));	
-
-	decl String:name[64];
-	new bool:isml,clients[MAXPLAYERS+1];
-	new count=ProcessTargetString(arg,client,clients,MAXPLAYERS+1,COMMAND_FILTER_CONNECTED|COMMAND_FILTER_NO_BOTS,name,sizeof(name),isml);
-	if (count > 0)
-	{
-		for(new x=0;x<count;x++)
-		{
-			g_soundcount[clients[x]] = 0;
-			DisplayRemainingSounds(clients[x]);
-		}
-	}
-	else
-	{
-		ReplyToTargetError(client, count);
-	}
-
-	return Plugin_Handled;
+public void OnCvarsChanged(ConVar convar, const char[] oldValue, const char[] newValue) {
+    SyncConVarValues();
 }
 
-public Action:Command_Sound_Ban(client, args)
-{
-	if (args < 1)
-	{
-		ReplyToCommand(client, "[sm] usage: sm_sound_ban <target>");
-		return Plugin_Handled;	
-	}
+public Action CommandListenerSay(int client, const char[] command, int argc) {
+    if(client != 0) {
+        if(!g_bPluginEnabled) {
+            return Plugin_Continue;
+        }
+        if(g_bIsPlayerRestricted[client]) {
+            return Plugin_Continue;
+        }
+        char arg1[32];
+        GetCmdArg(1, arg1, sizeof(arg1));
 
-	new String:arg[64];
-	GetCmdArg(1, arg, sizeof(arg));	
+        char cBuff[4][6];
+        int cArgs = ExplodeString(arg1, " ", cBuff, 4, 6);
 
-	decl String:name[64];
-	new bool:isml,clients[MAXPLAYERS+1];
-	new count=ProcessTargetString(arg,client,clients,MAXPLAYERS+1,COMMAND_FILTER_CONNECTED|COMMAND_FILTER_NO_BOTS|COMMAND_FILTER_NO_MULTI,name,sizeof(name),isml);
-	if (count == 1)
-	{
-		g_clientprefs[clients[0]][SAYSOUND_PREF_BANNED] = !g_clientprefs[clients[0]][SAYSOUND_PREF_BANNED];
-		ReplyToCommand(client, "[sm] %N ban status set to: %s", clients[0], g_clientprefs[clients[0]][SAYSOUND_PREF_BANNED] ? "banned" : "unbanned");
-		
-		StoreClientCookies(clients[0]);
-	}
-	else
-	{
-		ReplyToTargetError(client, count);
-	}
+        //TODO()
+        // Add check arg is valid saysound
+        int si = GetSaySoundIndex(cBuff[0]);
+        if(si == -1) {
+            return Plugin_Continue;
+        }
+        
+        switch(cArgs) {
+            case 1: {
+                TrySaySound(client, cBuff[0], si, -1, -1.0);
+                if(g_bSaySoundsCancelChat) {
+                    return Plugin_Handled;
+                }
+            }
+            case 2: {
+                if(StrContains(cBuff[1], "@") != -1) {
+                    int p = ProcessPitch(cBuff[1]);
 
-	return Plugin_Handled;
+                    TrySaySound(client, cBuff[0], si, p, -1.0);
+
+                    if(g_bSaySoundsCancelChat) {
+                        return Plugin_Handled;
+                    }
+                }
+                else if(StrContains(cBuff[1], "%") != -1) {
+                    float l = ProcessLength(cBuff[1]);
+
+                    TrySaySound(client, cBuff[0], si, 100, l);
+
+                    if(g_bSaySoundsCancelChat) {
+                        return Plugin_Handled;
+                    }
+                }
+            }
+            case 3: {
+                int p = 100;
+                float l = 0.0;
+                if(StrContains(cBuff[1], "@") != -1) {
+                    p = ProcessPitch(cBuff[1]);
+                    l = ProcessLength(cBuff[2]);
+                } else {
+                    p = ProcessPitch(cBuff[2]);
+                    l = ProcessLength(cBuff[1]);
+                }
+                TrySaySound(client, cBuff[0], si, p, l);
+                if(g_bSaySoundsCancelChat) {
+                    return Plugin_Handled;
+                }
+            }
+            default: {return Plugin_Continue;}
+        }
+    }
+    return Plugin_Continue;
 }
 
-public SaysoundClientPref(client, CookieMenuAction:action, any:info, String:buffer[], maxlen)
-{
-	if (action == CookieMenuAction_SelectOption)
-	{
-		ShowClientPrefMenu(client);
-	}
+void TrySaySound(int client, char[] soundName, int saySoundIndex, int pitch = 100, float length = 0.0) {
+    if(pitch == -1) {
+        pitch = g_iPlayerSoundPitch[client];
+    }
+    if(length == -1.0) {
+        length == g_fPlayerSoundLength[client];
+    }
+    char fileLocation[PLATFORM_MAX_PATH];
+
+    GetArrayString(g_hPath, saySoundIndex, fileLocation, sizeof(fileLocation));
+
+
+    for(int i = 1; i <= MaxClients; i++) {
+        if(!IsClientInGame(i) || g_fPlayerSoundDisabled[i]) {
+            continue;
+        }
+        EmitSoundToClient(
+            i,
+            fileLocation,
+            SOUND_FROM_PLAYER,
+            SNDCHAN_STATIC,
+            SNDLEVEL_NORMAL,
+            SND_NOFLAGS,
+            g_fPlayerSoundVolume[i],
+            pitch,
+            0,
+            NULL_VECTOR,
+            NULL_VECTOR,
+            true,
+            0.0
+        );
+    }
+    if(length != -1.0) {
+        DataPack pack;
+        CreateDataTimer(length, StopSoundTimer, pack);
+        pack.WriteString(fileLocation);
+    }
+    if(g_bSaySoundsCancelChat) {
+        if(pitch != -1 && pitch != 100 && length != -1.0) {
+            CPrintToChatAll("{purple}%N {default}played {lightgreen}%s {lightred}(Speed: %d | seconds: %.1f)", client, soundName, pitch, length);
+            return;
+        }
+        if(pitch != -1 && pitch != 100) {
+            CPrintToChatAll("{purple}%N {default}played {lightgreen}%s {lightred}(Speed: %d)", client, soundName, pitch);
+            return;
+        }
+        if(length != -1.0) {
+            CPrintToChatAll("{purple}%N {default}played {lightgreen}%s {lightred}(seconds: %.1f)", client, soundName, length);
+            return;
+        } else {
+            CPrintToChatAll("{purple}%N {default}played {lightgreen}%s", client, soundName);
+            return;
+        }
+    }
 }
 
-ShowClientPrefMenu(client)
-{
-	new Handle:menu = CreateMenu(MenuHandlerClientPref);
+int ProcessPitch(const char[] argText) {
+    char ag[6];
+    strcopy(ag, sizeof(ag), argText);
+    ReplaceString(ag, sizeof(ag), "@", "");
 
-	SetMenuTitle(menu, "Saysounds\n ");
+    if(StrEqual(ag, "")) {return -1;}
+    for(int i = 0; i < strlen(ag); i++) {
+        if (!IsCharNumeric(ag[i])) {
+            return -1;
+        }
+    }
 
-	AddMenuItem(menu, "", g_clientprefs[client][SAYSOUND_PREF_DISABLED] ? "Saysounds: Disabled" : "Saysounds: Enabled");
-
-	SetMenuExitButton(menu, true);
-
-	DisplayMenu(menu, client, 0);
+    int p = StringToInt(ag);
+    if(p > SAYSOUND_PITCH_MAX || SAYSOUND_PITCH_MIN > p) {
+        return -1;
+    }
+    return p;
 }
 
-public MenuHandlerClientPref(Handle:menu, MenuAction:action, param1, param2)
-{
-	if(action == MenuAction_Select)	
-	{
-		if (param2 == 0)
-		{
-			g_clientprefs[param1][SAYSOUND_PREF_DISABLED] = !g_clientprefs[param1][SAYSOUND_PREF_DISABLED];
-		}
-		ShowClientPrefMenu(param1);
-	} 
-	else if(action == MenuAction_End)
-	{
-		CloseHandle(menu);
-	}
+float ProcessLength(const char[] argText) {
+    char ag[6];
+    strcopy(ag, sizeof(ag), argText);
+    ReplaceString(ag, sizeof(ag), "%", "");
+
+    if(StrEqual(ag, "")) {return -1.0;}
+    for(int i = 0; i < strlen(ag); i++) {
+        if (!IsCharNumeric(ag[i])) {
+            return -1.0;
+        }
+    }
+
+    float l = StringToFloat(ag);
+    if(l < SAYSOUND_LENGTH_MIN || l > SAYSOUND_LENGTH_MAX) {
+        return -1.0;
+    }
+    return l;
 }
 
-public Action:Command_Sound_Toggle(client, args)
-{
-	if(client && IsClientInGame(client))
-	{
-		g_clientprefs[client][SAYSOUND_PREF_DISABLED]  = ! g_clientprefs[client][SAYSOUND_PREF_DISABLED];
-		PrintToChat(client, "[SM] %s", g_clientprefs[client][SAYSOUND_PREF_DISABLED] ? "saysounds disabled" : "saysounds enabled");
-	}
-
-	return Plugin_Handled;
+public Action StopSoundTimer(Handle timer, DataPack pack) {
+    char soundPath[PLATFORM_MAX_PATH];
+    pack.Reset();
+    pack.ReadString(soundPath, sizeof(soundPath));
+    for(int i = 1; i <= MaxClients; i++) {
+        StopSound(i, SNDCHAN_VOICE, soundPath);
+    }
+    return Plugin_Stop;
 }
 
-public Action:Command_Sound_Menu(client, args)
-{
-	if(client && IsClientInGame(client))
-	{
-		if(g_access[client] == SAYSOUND_ADMIN)
-		{
-			DisplayMenu(gh_adminmenu, client, 60);
-		}
-		else
-		{
-			DisplayMenu(gh_menu, client, 60);
-		}
-	}
-
-	return Plugin_Handled;
+int GetSaySoundIndex(const char[] soundName) {
+    char buff[SAYSOUND_SOUND_NAME_SIZE];
+    for(int i = 0; i < GetArraySize(g_hSoundName); i++) {
+        GetArrayString(g_hSoundName, i, buff, sizeof(buff));
+        if(StrEqual(buff, soundName)) {
+            return i;
+        }
+    }
+    return -1;
 }
 
-public menu_handler(Handle:menu,MenuAction:action,client,selection)
-{
-	if(action==MenuAction_Select)
-	{
-		decl String:SelectionInfo[SAYSOUND_TRIGGER_SIZE];
-		if (GetMenuItem(menu,selection,SelectionInfo,sizeof(SelectionInfo)))
-		{
-			if(gb_enabled && !g_clientprefs[client][SAYSOUND_PREF_DISABLED] && !g_clientprefs[client][SAYSOUND_PREF_BANNED])		// enabled, they can emit sounds to others
-			{
-				AttemptSaySound(client, SelectionInfo);
-			}
-		}
-	}
+void ParseConfig() {
+    g_hPath        = CreateArray(ByteCountToCells(PLATFORM_MAX_PATH));
+    g_hLength       = CreateArray();
+    g_hSoundName    = CreateArray(ByteCountToCells(SAYSOUND_SOUND_NAME_SIZE));
+    g_hVolume        = CreateArray();
+    g_hFlags       = CreateArray();
+
+    char soundListFile[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM,soundListFile,sizeof(soundListFile),"configs/ftSaysounds.cfg");
+    if(!FileExists(soundListFile)) {
+        PrintToServer("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nFILE NOT FOUND");
+        SetFailState("ftSaysounds.cfg failed to parse! Reason: File doesn't exist!");
+    }
+    Handle listFile = CreateKeyValues("soundlist");
+    FileToKeyValues(listFile, soundListFile);
+    KvRewind(listFile);
+
+    if(KvGotoFirstSubKey(listFile)) {
+        char fileLocation[PLATFORM_MAX_PATH], soundName[SAYSOUND_SOUND_NAME_SIZE];
+        float duration, volume;
+
+        do {
+            KvGetString(listFile, "file", fileLocation, sizeof(fileLocation), "");
+            if(fileLocation[0] != '\0') {
+                KvGetSectionName(listFile, soundName, sizeof(soundName));
+                int flags = 0;
+                if(KvGetNum(listFile, "download", 0)) {
+                    flags |= SAYSOUND_FLAG_DOWNLOAD;
+                }
+
+                duration = KvGetFloat(listFile, "duration", 0.0);
+                if(duration) {
+                    flags |= SAYSOUND_FLAG_CUSTOMLENGTH;
+                }
+
+                volume = KvGetFloat(listFile, "volume", 0.0);
+                if(volume) {
+                    flags |= SAYSOUND_FLAG_CUSTOMVOLUME;
+                    if(volume > 2.0) {
+                        volume = 2.0;
+                    } 
+                }
+
+                Format(fileLocation, sizeof(fileLocation), "*%s", fileLocation);
+                PushArrayString(g_hPath, fileLocation);
+                PushArrayCell(g_hLength, duration);
+                PushArrayCell(g_hVolume, volume);
+                PushArrayCell(g_hFlags, flags);
+                PushArrayString(g_hSoundName, soundName);
+            }
+        } while(KvGotoNextKey(listFile));
+    } else {
+        PrintToServer("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nSUBKEY NOT FOUND");
+        SetFailState("ftSaysounds.cfg failed to parse! Reason: No subkeys found!");
+    }
 }
 
-public OnAdminMenuReady(Handle:topmenu)
-{
-	if (topmenu != hAdminMenu)
-	{
-		hAdminMenu = topmenu;
-		new TopMenuObject:server_commands = FindTopMenuCategory(hAdminMenu, ADMINMENU_SERVERCOMMANDS);
-		AddToTopMenu(hAdminMenu, "sm_soundlist", TopMenuObject_Item, Play_Admin_Sound, server_commands, "sm_soundlist", ADMFLAG_GENERIC);
-	}
-}
+void PrecacheSounds() {
+    char soundFile[PLATFORM_MAX_PATH], buffer[PLATFORM_MAX_PATH];
+    int flags;
 
-public Play_Admin_Sound(Handle:topmenu, TopMenuAction:action, TopMenuObject:object_id, param, String:buffer[], maxlength)
-{
-	if (action == TopMenuAction_DisplayOption)
-	{
-		Format(buffer, maxlength, "Play A Saysound");
-	}
-	else if (action == TopMenuAction_SelectOption)
-	{
-		Command_Sound_Menu(param, 0);
-	}
-}
+    for(int i = GetArraySize(g_hPath) - 1; i >= 0; i--) {
+        GetArrayString(g_hPath, i, soundFile, sizeof(soundFile));
+        flags = GetArrayCell(g_hFlags, i);
+        AddToStringTable(FindStringTable("soundprecache"), soundFile);
 
+        if(flags & SAYSOUND_FLAG_DOWNLOAD) {
+            FormatEx(buffer, sizeof(buffer), "sound/%s", soundFile);
+            AddFileToDownloadsTable(buffer);
+        }
+    }
+}
