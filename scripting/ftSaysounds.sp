@@ -88,10 +88,10 @@ public void OnPluginStart()
     g_hSoundRestrictionTimeCookie   = RegClientCookie("cookie_ss_restriction_time", "Saysound restriction time", CookieAccess_Protected);
     g_hSoundToggleCookie            = RegClientCookie("cookie_ss_toggle", "Saysound toggle", CookieAccess_Protected);
 
-    RegConsoleCmd("sm_ss_volume", CommandSSVolume, "Set say sounds volume per player.");
-    RegConsoleCmd("sm_ss_speed", CommandSSSpeed, "Set say sounds volume per player.");
-    RegConsoleCmd("sm_ss_seconds", CommandSSSeconds, "Set say sounds volume per player.");
-    RegConsoleCmd("sm_ss_toggle", CommandSSToggle, "Set say sounds volume per player.");
+    RegConsoleCmd("sm_ss_volume", CommandSSVolume, "Set saysounds volume per player.");
+    RegConsoleCmd("sm_ss_speed", CommandSSSpeed, "Set saysounds speed per player.");
+    RegConsoleCmd("sm_ss_seconds", CommandSSSeconds, "Set saysounds length per player.");
+    RegConsoleCmd("sm_ss_toggle", CommandSSToggle, "Toggle saysounds per player.");
 
     AddCommandListener(CommandListenerSay, "say");
     AddCommandListener(CommandListenerSay, "say2");
