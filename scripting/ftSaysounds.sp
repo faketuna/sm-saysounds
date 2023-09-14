@@ -459,13 +459,19 @@ bool IsOnlyDicimal(char[] string) {
 // USER COMMAND AREA
 
 public Action CommandSSVolume(int client, int args) {
-    if(args == 0) {
-        CPrintToChat(client, "TODO() Usage");
-        return Plugin_Handled;
-    }
-
     if(args >= 1) {
         char arg1[4];
         GetCmdArg(1, arg1, sizeof(arg1));
+        if(!IsOnlyDicimal(arg1)) {
+            CPrintToChat(client, "TODO() Invalid arguments.");
+            return Plugin_Handled;
+        }
+
+        g_fPlayerSoundVolume[client] = float(StringToInt(arg1)) / 100;
+        CPrintToChat(client, "TODO() Success to set volume");
+        return Plugin_Handled;
     }
+
+    // TODO Pref menu
+    return Plugin_Handled;
 }
