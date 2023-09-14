@@ -48,7 +48,7 @@ float g_fLastSaySound[MAXPLAYERS+1];
 
 // Client prefs (Player setting) related.
 bool g_bIsPlayerRestricted[MAXPLAYERS+1];
-bool g_fPlayerSoundDisabled[MAXPLAYERS+1];
+bool g_bPlayerSoundDisabled[MAXPLAYERS+1];
 float g_fPlayerSoundVolume[MAXPLAYERS+1];
 float g_fPlayerSoundLength[MAXPLAYERS+1];
 float g_fPlayerRestrictionTime[MAXPLAYERS+1];
@@ -88,7 +88,10 @@ public void OnPluginStart()
     g_hSoundRestrictionTimeCookie   = RegClientCookie("cookie_ss_restriction_time", "Saysound restriction time", CookieAccess_Protected);
     g_hSoundToggleCookie            = RegClientCookie("cookie_ss_toggle", "Saysound toggle", CookieAccess_Protected);
 
-    RegConsoleCmd("sm_ss_volume", CommandSSVolume, "Set say sounds volume per player.");
+    RegConsoleCmd("sm_ss_volume", CommandSSVolume, "Set saysounds volume per player.");
+    RegConsoleCmd("sm_ss_speed", CommandSSSpeed, "Set saysounds speed per player.");
+    RegConsoleCmd("sm_ss_seconds", CommandSSSeconds, "Set saysounds length per player.");
+    RegConsoleCmd("sm_ss_toggle", CommandSSToggle, "Toggle saysounds per player.");
 
     AddCommandListener(CommandListenerSay, "say");
     AddCommandListener(CommandListenerSay, "say2");
@@ -126,8 +129,8 @@ public void OnClientCookiesCached(int client) {
     if (!StrEqual(cookieValue, "")) {
         g_fPlayerSoundLength[client] = StringToFloat(cookieValue);
     } else {
-        g_fPlayerSoundLength[client] = 0.0;
-        SetClientCookie(client, g_hSoundLengthCookie, "0.0");
+        g_fPlayerSoundLength[client] = -1.0;
+        SetClientCookie(client, g_hSoundLengthCookie, "-1.0");
     }
     
 
@@ -164,9 +167,9 @@ public void OnClientCookiesCached(int client) {
     GetClientCookie(client, g_hSoundToggleCookie, cookieValue, sizeof(cookieValue));
 
     if (!StrEqual(cookieValue, "")) {
-        g_fPlayerSoundDisabled[client] = view_as<bool>(StringToInt(cookieValue));
+        g_bPlayerSoundDisabled[client] = view_as<bool>(StringToInt(cookieValue));
     } else {
-        g_fPlayerSoundDisabled[client] = false;
+        g_bPlayerSoundDisabled[client] = false;
         SetClientCookie(client, g_hSoundToggleCookie, "false");
     }
 }
@@ -263,7 +266,7 @@ void TrySaySound(int client, char[] soundName, int saySoundIndex, int pitch = 10
         pitch = g_iPlayerSoundPitch[client];
     }
     if(length == -1.0) {
-        length == g_fPlayerSoundLength[client];
+        length = g_fPlayerSoundLength[client];
     }
     char fileLocation[PLATFORM_MAX_PATH];
 
@@ -271,7 +274,7 @@ void TrySaySound(int client, char[] soundName, int saySoundIndex, int pitch = 10
 
 
     for(int i = 1; i <= MaxClients; i++) {
-        if(!IsClientInGame(i) || g_fPlayerSoundDisabled[i]) {
+        if(!IsClientInGame(i) || g_bPlayerSoundDisabled[i]) {
             continue;
         }
         EmitSoundToClient(
@@ -468,10 +471,70 @@ public Action CommandSSVolume(int client, int args) {
         }
 
         g_fPlayerSoundVolume[client] = float(StringToInt(arg1)) / 100;
+        char buff[6];
+        FloatToString(g_fPlayerSoundVolume[client], buff, sizeof(buff));
+        SetClientCookie(client, g_hSoundVolumeCookie, buff);
         CPrintToChat(client, "TODO() Success to set volume");
         return Plugin_Handled;
     }
 
+    // TODO Pref menu
+    return Plugin_Handled;
+}
+
+public Action CommandSSSpeed(int client, int args) {
+    if(args >= 1) {
+        char arg1[4];
+        GetCmdArg(1, arg1, sizeof(arg1));
+        if(!IsOnlyDicimal(arg1)) {
+            CPrintToChat(client, "TODO() Invalid arguments.");
+            return Plugin_Handled;
+        }
+
+        int arg = StringToInt(arg1);
+        if(arg > SAYSOUND_PITCH_MAX || SAYSOUND_PITCH_MIN > arg) {
+            CPrintToChat(client, "TODO() Value out of range");
+            return Plugin_Handled;
+        }
+
+        g_iPlayerSoundPitch[client] = arg;
+        SetClientCookie(client, g_hSoundPitchCookie, arg1);
+        CPrintToChat(client, "TODO() Success to set speed");
+        return Plugin_Handled;
+    }
+
+    // TODO Pref menu
+    return Plugin_Handled;
+}
+
+public Action CommandSSSeconds(int client, int args) {
+    if(args >= 1) {
+        char arg1[4];
+        GetCmdArg(1, arg1, sizeof(arg1));
+        
+        char check[6];
+        strcopy(check, sizeof(check), arg1);
+        ReplaceString(check, sizeof(check), ".", "");
+        if(!IsOnlyDicimal(check)) {
+            CPrintToChat(client, "TODO() Seconds cleared");
+            SetClientCookie(client, g_hSoundLengthCookie, "-1.0");
+            g_fPlayerSoundLength[client] = -1.0;
+            return Plugin_Handled;
+        }
+        g_fPlayerSoundLength[client] = StringToFloat(arg1);
+        SetClientCookie(client, g_hSoundLengthCookie, arg1);
+        CPrintToChat(client, "TODO() Success to set length");
+        return Plugin_Handled;
+    }
+
+    // TODO Pref menu
+    return Plugin_Handled;
+}
+
+public Action CommandSSToggle(int client, int args) {
+    g_bPlayerSoundDisabled[client] = !g_bPlayerSoundDisabled[client];
+    SetClientCookie(client, g_hSoundToggleCookie, g_bPlayerSoundDisabled[client] ? "1" : "0");
+    CPrintToChat(client, "TODO() Success to toggle say sound: %s", g_bPlayerSoundDisabled[client] ? "1" : "0");
     // TODO Pref menu
     return Plugin_Handled;
 }
