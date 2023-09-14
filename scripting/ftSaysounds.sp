@@ -618,7 +618,11 @@ public Action CommandSBanUser(int client, int args) {
             tn_is_ml
         );
 
-        if(targetCount <= 0) {
+        if(targetCount <= -1) {
+            ReplyToTargetError(client, targetCount);
+            DisplayBanSuggesion(client, target, false);
+            return Plugin_Handled;
+        } else if(targetCount == 0) {
             ReplyToTargetError(client, targetCount);
             return Plugin_Handled;
         }
@@ -635,10 +639,10 @@ public Action CommandSBanUser(int client, int args) {
             SetClientCookie(targetList[0], g_hSoundRestrictionCookie, "1");
             return Plugin_Handled;
         }
-        //TODO Ban menu with suggesion.
+        return Plugin_Handled;
     }
 
-    // TODO Ban menu
+    DisplayBanSuggesion(client, "", false);
     return Plugin_Handled;
 }
 
@@ -662,7 +666,11 @@ public Action CommandSUnBanUser(int client, int args) {
             tn_is_ml
         );
 
-        if(targetCount <= 0) {
+        if(targetCount <= -1) {
+            ReplyToTargetError(client, targetCount);
+            DisplayBanSuggesion(client, target, true);
+            return Plugin_Handled;
+        } else if(targetCount == 0) {
             ReplyToTargetError(client, targetCount);
             return Plugin_Handled;
         }
@@ -679,10 +687,10 @@ public Action CommandSUnBanUser(int client, int args) {
             SetClientCookie(targetList[0], g_hSoundRestrictionCookie, "0");
             return Plugin_Handled;
         }
-        //TODO unban menu with suggesion.
+        return Plugin_Handled;
     }
 
-    // TODO unban menu
+    DisplayBanSuggesion(client, "", true);
     return Plugin_Handled;
 }
 
@@ -827,4 +835,122 @@ public void SoundSettingsMenu(int client, CookieMenuAction actions, any info, ch
     {
         DisplaySettingsMenu(client);
     }
+}
+
+
+
+// ADMIN USER BAN/UNBAN SUGGESION
+
+void DisplayBanSuggesion(int client, char[] search, bool invertSuggesion = false)
+{
+    SetGlobalTransTarget(client);
+    Menu prefmenu = CreateMenu(BanHandler, MENU_ACTIONS_DEFAULT);
+
+    char menuTitle[64];
+    Format(menuTitle, sizeof(menuTitle), "TODO() ADMIN BAN SUGGESION");
+    if(invertSuggesion) {
+        Format(menuTitle, sizeof(menuTitle), "TODO() ADMIN UNBAN SUGGESION");
+    }
+    prefmenu.SetTitle(menuTitle);
+    if(StrEqual(search, "")) {
+        prefmenu.AddItem("test", "Search all");
+        if(invertSuggesion) {
+            for(int i = 1; i <= MaxClients; i++) {
+                if(IsClientConnected(i) && !IsFakeClient(i)) {
+                    if(g_bIsPlayerRestricted[i]) {
+                        char buff[MAX_TARGET_LENGTH];
+                        Format(buff, sizeof(buff), "%N", i);
+                        prefmenu.AddItem(buff, buff);
+                    }
+                }
+            }
+        }
+        else {
+            for(int i = 1; i <= MaxClients; i++) {
+                if(IsClientConnected(i) && !IsFakeClient(i)) {
+                    if(!g_bIsPlayerRestricted[i]) {
+                        char buff[MAX_TARGET_LENGTH];
+                        Format(buff, sizeof(buff), "%N", i);
+                        prefmenu.AddItem(buff, buff);
+                    }
+                }
+            }
+        }
+    } else {
+        prefmenu.AddItem("test", "Search specific");
+        char nBuff[MAX_NAME_LENGTH];
+        if(invertSuggesion) {
+            for(int i = 1; i <= MaxClients; i++) {
+                if(IsClientConnected(i) && !IsFakeClient(i)) {
+                    GetClientName(client, nBuff, sizeof(nBuff));
+                    if(StrContains(nBuff, search) >= 0) {
+                        if(g_bIsPlayerRestricted[i]) {
+                            prefmenu.AddItem(nBuff, nBuff);
+                        }
+                    }
+                }
+            }
+        } 
+        else {
+            for(int i = 1; i <= MaxClients; i++) {
+                if(IsClientConnected(i) && !IsFakeClient(i)) {
+                    GetClientName(client, nBuff, sizeof(nBuff));
+                    if(StrContains(nBuff, search) >= 0) {
+                        if(!g_bIsPlayerRestricted[i]) {
+                            prefmenu.AddItem(nBuff, nBuff);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    
+    prefmenu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int BanHandler(Menu prefmenu, MenuAction actions, int client, int item)
+{
+    SetGlobalTransTarget(client);
+    if (actions == MenuAction_Select)
+    {
+        char preference[MAX_TARGET_LENGTH];
+        GetMenuItem(prefmenu, item, preference, sizeof(preference));
+
+        char targetName[MAX_TARGET_LENGTH];
+        int targetList[MAXPLAYERS];
+        int targetCount;
+        bool tn_is_ml;
+
+        targetCount = ProcessTargetString(
+            preference,
+            client,
+            targetList,
+            MAXPLAYERS,
+            0,
+            targetName,
+            sizeof(targetName),
+            tn_is_ml
+        );
+
+        if(targetCount == 1) {
+            g_bIsPlayerRestricted[targetList[0]] = !g_bIsPlayerRestricted[targetList[0]];
+            SetClientCookie(client, g_hSoundRestrictionCookie, g_bIsPlayerRestricted[targetList[0]] ? "1" : "0");
+            CPrintToChat(client, "%t%t", "ss prefix", g_bIsPlayerRestricted[targetList[0]] ? "ss user banned" : "ss user unbanned", preference);
+        }
+
+        
+    }
+    else if (actions == MenuAction_Cancel)
+    {
+        if (item == MenuCancel_ExitBack)
+        {
+            ShowCookieMenu(client);
+        }
+    }
+    else if (actions == MenuAction_End)
+    {
+        CloseHandle(prefmenu);
+    }
+    return 0;
 }
