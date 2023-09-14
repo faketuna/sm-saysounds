@@ -490,7 +490,13 @@ public Action CommandSSSpeed(int client, int args) {
             return Plugin_Handled;
         }
 
-        g_iPlayerSoundPitch[client] = StringToInt(arg1);
+        int arg = StringToInt(arg1);
+        if(arg > SAYSOUND_PITCH_MAX || SAYSOUND_PITCH_MIN > arg) {
+            CPrintToChat(client, "TODO() Value out of range");
+            return Plugin_Handled;
+        }
+
+        g_iPlayerSoundPitch[client] = arg;
         SetClientCookie(client, g_hSoundPitchCookie, arg1);
         CPrintToChat(client, "TODO() Success to set speed");
         return Plugin_Handled;
