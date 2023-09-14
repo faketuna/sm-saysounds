@@ -469,6 +469,9 @@ public Action CommandSSVolume(int client, int args) {
         }
 
         g_fPlayerSoundVolume[client] = float(StringToInt(arg1)) / 100;
+        char buff[6];
+        FloatToString(g_fPlayerSoundVolume[client], buff, sizeof(buff));
+        SetClientCookie(client, g_hSoundVolumeCookie, buff);
         CPrintToChat(client, "TODO() Success to set volume");
         return Plugin_Handled;
     }
