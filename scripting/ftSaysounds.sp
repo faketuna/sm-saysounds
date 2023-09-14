@@ -93,11 +93,15 @@ public void OnPluginStart()
     RegConsoleCmd("sm_ss_seconds", CommandSSSeconds, "Set saysounds length per player.");
     RegConsoleCmd("sm_ss_toggle", CommandSSToggle, "Toggle saysounds per player.");
 
+    RegAdminCmd("sm_ss_ban", CommandSBanUser, ADMFLAG_CHAT, "Ban a specific user.");
+    RegAdminCmd("sm_ss_unban", CommandSUnBanUser, ADMFLAG_CHAT, "unban a specific user.");
+
     AddCommandListener(CommandListenerSay, "say");
     AddCommandListener(CommandListenerSay, "say2");
     AddCommandListener(CommandListenerSay, "say_team");
     ParseConfig();
 
+    LoadTranslations("common.phrases");
     for(int i = 1; i <= MaxClients; i++) {
         if(IsClientConnected(i)) {
             if(AreClientCookiesCached(i)) {
@@ -550,5 +554,82 @@ public Action CommandSSToggle(int client, int args) {
     SetClientCookie(client, g_hSoundToggleCookie, g_bPlayerSoundDisabled[client] ? "1" : "0");
     CPrintToChat(client, "TODO() Success to toggle say sound: %s", g_bPlayerSoundDisabled[client] ? "1" : "0");
     // TODO Pref menu
+    return Plugin_Handled;
+}
+
+
+// USER MANAGEMENT COMMAND AREA
+
+public Action CommandSBanUser(int client, int args) {
+    if(args >= 1) {
+        char target[65];
+        char targetName[MAX_TARGET_LENGTH];
+        int targetList[MAXPLAYERS];
+        int targetCount;
+        bool tn_is_ml;
+
+        GetCmdArg(1, target, sizeof(target));
+        targetCount = ProcessTargetString(
+            target,
+            client,
+            targetList,
+            MAXPLAYERS,
+            0,
+            targetName,
+            sizeof(targetName),
+            tn_is_ml
+        );
+
+        if(targetCount <= 0) {
+            ReplyToTargetError(client, targetCount);
+            return Plugin_Handled;
+        }
+        if(targetCount == 1) {
+            g_bIsPlayerRestricted[targetList[0]] = true;
+            SetClientCookie(targetList[0], g_hSoundRestrictionCookie, "1");
+            CPrintToChat(client, "TODO() Banned user %N", targetList[0]);
+            return Plugin_Handled;
+        }
+        //TODO Ban menu with suggesion.
+    }
+
+    // TODO Ban menu
+    return Plugin_Handled;
+}
+
+public Action CommandSUnBanUser(int client, int args) {
+    if(args >= 1) {
+        char target[65];
+        char targetName[MAX_TARGET_LENGTH];
+        int targetList[MAXPLAYERS];
+        int targetCount;
+        bool tn_is_ml;
+
+        GetCmdArg(1, target, sizeof(target));
+        targetCount = ProcessTargetString(
+            target,
+            client,
+            targetList,
+            MAXPLAYERS,
+            0,
+            targetName,
+            sizeof(targetName),
+            tn_is_ml
+        );
+
+        if(targetCount <= 0) {
+            ReplyToTargetError(client, targetCount);
+            return Plugin_Handled;
+        }
+        if(targetCount == 1) {
+            g_bIsPlayerRestricted[targetList[0]] = false;
+            SetClientCookie(targetList[0], g_hSoundRestrictionCookie, "0");
+            CPrintToChat(client, "TODO() Unbanned user %N", targetList[0]);
+            return Plugin_Handled;
+        }
+        //TODO unban menu with suggesion.
+    }
+
+    // TODO unban menu
     return Plugin_Handled;
 }
