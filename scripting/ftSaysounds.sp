@@ -197,84 +197,96 @@ public void OnCvarsChanged(ConVar convar, const char[] oldValue, const char[] ne
 }
 
 public Action CommandListenerSay(int client, const char[] command, int argc) {
-    if(client != 0) {
-        if(!g_bPluginEnabled) {
-            return Plugin_Continue;
-        }
-        if(g_bIsPlayerRestricted[client]) {
-            return Plugin_Continue;
-        }
-        if(g_fLastSaySound[client] == 0.0) {
-            g_fLastSaySound[client] = GetGameTime();
-        }
+    if(client == 0) {
+        return Plugin_Handled;
+    }
+    if(!g_bPluginEnabled) {
+        return Plugin_Continue;
+    }
+    if(g_bIsPlayerRestricted[client]) {
+        return Plugin_Continue;
+    }
+    if(g_fLastSaySound[client] == 0.0) {
+        g_fLastSaySound[client] = GetGameTime();
+    }
 
-        float ft = GetGameTime() - g_fLastSaySound[client];
-        float fi       = g_fSaySoundsInterval;
-        if(ft <= fi) {
-            CPrintToChat(client, "TODO() Do not spam wait for %.1fs", fi-ft);
+    float ft = GetGameTime() - g_fLastSaySound[client];
+    float fi       = g_fSaySoundsInterval;
+    if(ft <= fi) {
+        CPrintToChat(client, "TODO() Do not spam wait for %.1fs", fi-ft);
+        if(g_bSaySoundsCancelChat) {
+            return Plugin_Handled;
+        }
+        return Plugin_Continue;
+    }
+
+    char arg1[32], arg2[32], arg3[32];
+    GetCmdArg(1, arg1, sizeof(arg1));
+    GetCmdArg(2, arg2, sizeof(arg2));
+    GetCmdArg(3, arg3, sizeof(arg3));
+
+    char cBuff[4][6];
+    int cArgs = ExplodeString(arg1, " ", cBuff, 4, 6);
+
+    if(cArgs == 1 && !StrEqual(arg2, "")) {
+        cArgs = 2;
+        if(!StrEqual(arg3, "")) {
+            cArgs = 3;
+        }
+    } else {
+        strcopy(arg1, sizeof(arg1), cBuff[0]);
+        strcopy(arg2, sizeof(arg2), cBuff[1]);
+        strcopy(arg3, sizeof(arg3), cBuff[2]);
+    }
+
+    int si = GetSaySoundIndex(cBuff[0]);
+    if(si == -1) {
+        return Plugin_Continue;
+    }
+    
+    switch(cArgs) {
+        case 1: {
+            TrySaySound(client, arg1, si, -1, -1.0);
             if(g_bSaySoundsCancelChat) {
                 return Plugin_Handled;
             }
-            return Plugin_Continue;
         }
+        case 2: {
+            if(StrContains(arg2, "@") != -1) {
+                int p = ProcessPitch(arg2);
 
-        char arg1[32];
-        GetCmdArg(1, arg1, sizeof(arg1));
+                TrySaySound(client, arg1, si, p, -1.0);
 
-        char cBuff[4][6];
-        int cArgs = ExplodeString(arg1, " ", cBuff, 4, 6);
-
-        //TODO()
-        // Add check arg is valid saysound
-        int si = GetSaySoundIndex(cBuff[0]);
-        if(si == -1) {
-            return Plugin_Continue;
-        }
-        
-        switch(cArgs) {
-            case 1: {
-                TrySaySound(client, cBuff[0], si, -1, -1.0);
                 if(g_bSaySoundsCancelChat) {
                     return Plugin_Handled;
                 }
             }
-            case 2: {
-                if(StrContains(cBuff[1], "@") != -1) {
-                    int p = ProcessPitch(cBuff[1]);
+            else if(StrContains(arg2, "%") != -1) {
+                float l = ProcessLength(arg2);
 
-                    TrySaySound(client, cBuff[0], si, p, -1.0);
+                TrySaySound(client, arg1, si, 100, l);
 
-                    if(g_bSaySoundsCancelChat) {
-                        return Plugin_Handled;
-                    }
-                }
-                else if(StrContains(cBuff[1], "%") != -1) {
-                    float l = ProcessLength(cBuff[1]);
-
-                    TrySaySound(client, cBuff[0], si, 100, l);
-
-                    if(g_bSaySoundsCancelChat) {
-                        return Plugin_Handled;
-                    }
-                }
-            }
-            case 3: {
-                int p = 100;
-                float l = 0.0;
-                if(StrContains(cBuff[1], "@") != -1) {
-                    p = ProcessPitch(cBuff[1]);
-                    l = ProcessLength(cBuff[2]);
-                } else {
-                    p = ProcessPitch(cBuff[2]);
-                    l = ProcessLength(cBuff[1]);
-                }
-                TrySaySound(client, cBuff[0], si, p, l);
                 if(g_bSaySoundsCancelChat) {
                     return Plugin_Handled;
                 }
             }
-            default: {return Plugin_Continue;}
         }
+        case 3: {
+            int p = 100;
+            float l = 0.0;
+            if(StrContains(arg2, "@") != -1) {
+                p = ProcessPitch(arg2);
+                l = ProcessLength(arg3);
+            } else {
+                p = ProcessPitch(arg3);
+                l = ProcessLength(arg2);
+            }
+            TrySaySound(client, arg1, si, p, l);
+            if(g_bSaySoundsCancelChat) {
+                return Plugin_Handled;
+            }
+        }
+        default: {return Plugin_Continue;}
     }
     return Plugin_Continue;
 }
