@@ -511,13 +511,13 @@ public Action CommandSSList(int client, int args) {
 
 public Action CommandSSSearch(int client, int args) {
     if(args == 0) {
-        CPrintToChat(client, "TODO() USAGE: !ss_search <sound name>");
+        CPrintToChat(client, "%t%t", "ss prefix", "ss cmd search usage");
         return Plugin_Handled;
     }
     char buff[SAYSOUND_SOUND_NAME_SIZE];
     GetCmdArg(1, buff, sizeof(buff));
     if(strlen(buff) < 2) {
-        CPrintToChat(client, "TODO() LEAST 3 CHARACTER REQUIRED.");
+        CPrintToChat(client, "%t%t", "ss prefix", "ss cmd search minimum chars");
         return Plugin_Handled;
     }
     
@@ -732,7 +732,7 @@ void DisplaySSListMenu(int client)
     Menu prefmenu = CreateMenu(SSListMenuHanlder, MENU_ACTIONS_DEFAULT);
 
     char menuTitle[64];
-    Format(menuTitle, sizeof(menuTitle), "TODO() SS LIST");
+    Format(menuTitle, sizeof(menuTitle), "%t", "ss menu list");
     prefmenu.SetTitle(menuTitle);
     int size = GetArraySize(g_hSoundName);
     char buff[SAYSOUND_SOUND_NAME_SIZE];
@@ -784,11 +784,11 @@ void DisplaySSSResultMenu(int client, char[] search)
         }
     }
     char menuTitle[64];
-    Format(menuTitle, sizeof(menuTitle), "TODO() SEARCH OF <TEXT> | HIT: %d", found);
+    Format(menuTitle, sizeof(menuTitle), "%t", "ss menu search found", search, found);
     prefmenu.SetTitle(menuTitle);
 
     if(found == 0) {
-        CPrintToChat(client, "TODO() NO SOUND FOUND");
+        CPrintToChat(client, "%t%t", "ss prefix", "ss menu search not found", search);
         CloseHandle(prefmenu);
         return;
     }
@@ -969,13 +969,12 @@ void DisplayBanSuggesion(int client, char[] search, bool invertSuggesion = false
     Menu prefmenu = CreateMenu(BanHandler, MENU_ACTIONS_DEFAULT);
 
     char menuTitle[64];
-    Format(menuTitle, sizeof(menuTitle), "TODO() ADMIN BAN SUGGESION");
+    Format(menuTitle, sizeof(menuTitle), "%t", "ss admin ban menu");
     if(invertSuggesion) {
-        Format(menuTitle, sizeof(menuTitle), "TODO() ADMIN UNBAN SUGGESION");
+        Format(menuTitle, sizeof(menuTitle), "%t", "ss admin unban menu");
     }
     prefmenu.SetTitle(menuTitle);
     if(StrEqual(search, "")) {
-        prefmenu.AddItem("test", "Search all");
         if(invertSuggesion) {
             for(int i = 1; i <= MaxClients; i++) {
                 if(IsClientConnected(i) && !IsFakeClient(i)) {
@@ -999,7 +998,6 @@ void DisplayBanSuggesion(int client, char[] search, bool invertSuggesion = false
             }
         }
     } else {
-        prefmenu.AddItem("test", "Search specific");
         char nBuff[MAX_NAME_LENGTH];
         if(invertSuggesion) {
             for(int i = 1; i <= MaxClients; i++) {
