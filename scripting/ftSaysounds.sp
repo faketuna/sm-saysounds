@@ -90,6 +90,7 @@ public void OnPluginStart()
 
     RegConsoleCmd("sm_ss_volume", CommandSSVolume, "Set say sounds volume per player.");
     RegConsoleCmd("sm_ss_speed", CommandSSSpeed, "Set say sounds volume per player.");
+    RegConsoleCmd("sm_ss_seconds", CommandSSSeconds, "Set say sounds volume per player.");
 
     AddCommandListener(CommandListenerSay, "say");
     AddCommandListener(CommandListenerSay, "say2");
@@ -127,8 +128,8 @@ public void OnClientCookiesCached(int client) {
     if (!StrEqual(cookieValue, "")) {
         g_fPlayerSoundLength[client] = StringToFloat(cookieValue);
     } else {
-        g_fPlayerSoundLength[client] = 0.0;
-        SetClientCookie(client, g_hSoundLengthCookie, "0.0");
+        g_fPlayerSoundLength[client] = -1.0;
+        SetClientCookie(client, g_hSoundLengthCookie, "-1.0");
     }
     
 
@@ -264,7 +265,7 @@ void TrySaySound(int client, char[] soundName, int saySoundIndex, int pitch = 10
         pitch = g_iPlayerSoundPitch[client];
     }
     if(length == -1.0) {
-        length == g_fPlayerSoundLength[client];
+        length = g_fPlayerSoundLength[client];
     }
     char fileLocation[PLATFORM_MAX_PATH];
 
@@ -492,6 +493,29 @@ public Action CommandSSSpeed(int client, int args) {
         g_iPlayerSoundPitch[client] = StringToInt(arg1);
         SetClientCookie(client, g_hSoundPitchCookie, arg1);
         CPrintToChat(client, "TODO() Success to set speed");
+        return Plugin_Handled;
+    }
+
+    // TODO Pref menu
+    return Plugin_Handled;
+}
+
+public Action CommandSSSeconds(int client, int args) {
+    if(args >= 1) {
+        char arg1[4];
+        GetCmdArg(1, arg1, sizeof(arg1));
+        
+        char check[6];
+        strcopy(check, sizeof(check), arg1);
+        ReplaceString(check, sizeof(check), ".", "");
+        if(!IsOnlyDicimal(check)) {
+            CPrintToChat(client, "TODO() Seconds cleared");
+            g_fPlayerSoundLength[client] = -1.0;
+            return Plugin_Handled;
+        }
+        g_fPlayerSoundLength[client] = StringToFloat(arg1);
+        SetClientCookie(client, g_hSoundLengthCookie, arg1);
+        CPrintToChat(client, "TODO() Success to set length");
         return Plugin_Handled;
     }
 
