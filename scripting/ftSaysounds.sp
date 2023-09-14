@@ -21,6 +21,9 @@
 #define SAYSOUND_PITCH_MAX 200
 #define SAYSOUND_PITCH_MIN 50
 
+#define SAYSOUND_VOLUME_MAX 100
+#define SAYSOUND_VOLUME_MIN 0
+
 #define SAYSOUND_LENGTH_MAX 10
 #define SAYSOUND_LENGTH_MIN 0
 
@@ -501,6 +504,13 @@ public Action CommandSSVolume(int client, int args) {
             CPrintToChat(client, "%t%t", "ss prefix", "ss cmd invalid arguments");
             return Plugin_Handled;
         }
+        int arg = StringToInt(arg1);
+        if(arg > SAYSOUND_VOLUME_MAX || SAYSOUND_VOLUME_MIN > arg) {
+            char buff[8];
+            Format(buff, sizeof(buff), "%d", arg);
+            CPrintToChat(client, "%t%t", "ss prefix", "ss cmd value out of range", buff);
+            return Plugin_Handled;
+        }
 
         g_fPlayerSoundVolume[client] = float(StringToInt(arg1)) / 100;
         char buff[6];
@@ -525,7 +535,9 @@ public Action CommandSSSpeed(int client, int args) {
 
         int arg = StringToInt(arg1);
         if(arg > SAYSOUND_PITCH_MAX || SAYSOUND_PITCH_MIN > arg) {
-            CPrintToChat(client, "%t%t", "ss prefix", "ss cmd out of range", float(arg));
+            char buff[8];
+            Format(buff, sizeof(buff), "%d", arg);
+            CPrintToChat(client, "%t%t", "ss prefix", "ss cmd value out of range", buff);
             return Plugin_Handled;
         }
 
@@ -551,6 +563,13 @@ public Action CommandSSLength(int client, int args) {
             CPrintToChat(client, "%t%t", "ss prefix", "ss cmd length cleared");
             SetClientCookie(client, g_hSoundLengthCookie, "-1.0");
             g_fPlayerSoundLength[client] = -1.0;
+            return Plugin_Handled;
+        }
+        float c = StringToFloat(arg1);
+        if(c > float(SAYSOUND_LENGTH_MAX) || c < float(SAYSOUND_LENGTH_MIN)) {
+            char buff[8];
+            Format(buff, sizeof(buff), "%.1f", c);
+            CPrintToChat(client, "%t%t", "ss prefix", "ss cmd value out of range", buff);
             return Plugin_Handled;
         }
         g_fPlayerSoundLength[client] = StringToFloat(arg1);
