@@ -63,6 +63,7 @@ Handle g_hSoundName;
 Handle g_hLength;
 Handle g_hVolume;
 Handle g_hFlags;
+Handle g_hCheckPreCached;
 
 
 public Plugin myinfo = 
@@ -198,7 +199,7 @@ public void OnConfigsExecuted() {
 }
 
 public void OnMapStart() {
-    PrecacheSounds();
+    AddDownloadTableAll();
 }
 
 public void SyncConVarValues() {
@@ -243,6 +244,10 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
 
     int si = GetSaySoundIndex(cBuff[0]);
     if(si == -1) {
+        return Plugin_Continue;
+    }
+
+    if(!TryPrecacheSound(si)) {
         return Plugin_Continue;
     }
 
@@ -423,6 +428,7 @@ void ParseConfig() {
     g_hSoundName    = CreateArray(ByteCountToCells(SAYSOUND_SOUND_NAME_SIZE));
     g_hVolume        = CreateArray();
     g_hFlags       = CreateArray();
+    g_hCheckPreCached = CreateArray();
 
     char soundListFile[PLATFORM_MAX_PATH];
     BuildPath(Path_SM,soundListFile,sizeof(soundListFile),"configs/saysounds.cfg");
@@ -466,6 +472,7 @@ void ParseConfig() {
                 PushArrayCell(g_hVolume, volume);
                 PushArrayCell(g_hFlags, flags);
                 PushArrayString(g_hSoundName, soundName);
+                PushArrayCell(g_hCheckPreCached, false);
             }
         } while(KvGotoNextKey(listFile));
     } else {
@@ -474,6 +481,7 @@ void ParseConfig() {
     }
 }
 
+/*
 void PrecacheSounds() {
     char soundFile[PLATFORM_MAX_PATH], buffer[PLATFORM_MAX_PATH];
     int flags;
@@ -488,6 +496,31 @@ void PrecacheSounds() {
             AddFileToDownloadsTable(buffer);
         }
     }
+}
+*/
+
+void AddDownloadTableAll() {
+    char soundFile[PLATFORM_MAX_PATH], buffer[PLATFORM_MAX_PATH];
+    int flags;
+    for(int i = GetArraySize(g_hPath) - 1; i >= 0; i--) {
+        GetArrayString(g_hPath, i, soundFile, sizeof(soundFile));
+        flags = GetArrayCell(g_hFlags, i);
+        if(flags & SAYSOUND_FLAG_DOWNLOAD) {
+            FormatEx(buffer, sizeof(buffer), "sound/%s", soundFile);
+            AddFileToDownloadsTable(buffer);
+        }
+    }
+}
+
+bool TryPrecacheSound(int index) {
+    if(!GetArrayCell(g_hCheckPreCached, index)) {
+        CPrintToChatAll("Dynamic precache!");
+        char soundFile[PLATFORM_MAX_PATH];
+        GetArrayString(g_hPath, index, soundFile, sizeof(soundFile));
+        AddToStringTable(FindStringTable("soundprecache"), soundFile);
+        SetArrayCell(g_hCheckPreCached, index, true);
+    }
+    return GetArrayCell(g_hCheckPreCached, index);
 }
 
 bool IsOnlyDicimal(char[] string) {
