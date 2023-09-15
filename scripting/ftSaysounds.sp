@@ -209,6 +209,7 @@ public void SyncConVarValues() {
     g_bPluginEnabled        = GetConVarBool(g_cSaySoundsEnabled);
     g_bSaySoundsCancelChat  = GetConVarBool(g_cSaySoundsCancelChat);
     g_fSaySoundsInterval    = GetConVarFloat(g_cSaySoundsInterval);
+        
 }
 
 public void OnCvarsChanged(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -231,8 +232,8 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
     GetCmdArg(2, arg2, sizeof(arg2));
     GetCmdArg(3, arg3, sizeof(arg3));
 
-    char cBuff[4][6];
-    int cArgs = ExplodeString(arg1, " ", cBuff, 4, 6);
+    char cBuff[4][32];
+    int cArgs = ExplodeString(arg1, " ", cBuff, 4, 32);
 
     if(cArgs == 1 && !StrEqual(arg2, "")) {
         cArgs = 2;
@@ -264,7 +265,6 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
         }
         return Plugin_Continue;
     }
-    
     switch(cArgs) {
         case 1: {
             TrySaySound(client, arg1, si, -1, -1.0);
