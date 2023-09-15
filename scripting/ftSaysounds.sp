@@ -200,6 +200,9 @@ public void OnConfigsExecuted() {
 
 public void OnMapStart() {
     AddDownloadTableAll();
+    for(int i = GetArraySize(g_hCheckPreCached); i >= 0; i--) {
+        SetArrayCell(g_hCheckPreCached, i, false);
+    }
 }
 
 public void SyncConVarValues() {
