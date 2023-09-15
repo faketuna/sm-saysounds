@@ -203,13 +203,15 @@ public void OnMapStart() {
     for(int i = GetArraySize(g_hCheckPreCached)-1; i >= 0; i--) {
         SetArrayCell(g_hCheckPreCached, i, false);
     }
+    for(int i = 1; i <= MaxClients; i++) {
+        g_fLastSaySound[i] = GetGameTime();
+    }
 }
 
 public void SyncConVarValues() {
     g_bPluginEnabled        = GetConVarBool(g_cSaySoundsEnabled);
     g_bSaySoundsCancelChat  = GetConVarBool(g_cSaySoundsCancelChat);
     g_fSaySoundsInterval    = GetConVarFloat(g_cSaySoundsInterval);
-        
 }
 
 public void OnCvarsChanged(ConVar convar, const char[] oldValue, const char[] newValue) {
