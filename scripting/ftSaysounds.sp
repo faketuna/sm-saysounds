@@ -517,7 +517,6 @@ void AddDownloadTableAll() {
 
 bool TryPrecacheSound(int index) {
     if(!GetArrayCell(g_hCheckPreCached, index)) {
-        CPrintToChatAll("Dynamic precache!");
         char soundFile[PLATFORM_MAX_PATH];
         GetArrayString(g_hPath, index, soundFile, sizeof(soundFile));
         AddToStringTable(FindStringTable("soundprecache"), soundFile);
