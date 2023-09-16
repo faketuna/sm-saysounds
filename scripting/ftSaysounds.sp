@@ -486,24 +486,6 @@ void ParseConfig() {
     }
 }
 
-/*
-void PrecacheSounds() {
-    char soundFile[PLATFORM_MAX_PATH], buffer[PLATFORM_MAX_PATH];
-    int flags;
-
-    for(int i = GetArraySize(g_hPath) - 1; i >= 0; i--) {
-        GetArrayString(g_hPath, i, soundFile, sizeof(soundFile));
-        flags = GetArrayCell(g_hFlags, i);
-        AddToStringTable(FindStringTable("soundprecache"), soundFile);
-
-        if(flags & SAYSOUND_FLAG_DOWNLOAD) {
-            FormatEx(buffer, sizeof(buffer), "sound/%s", soundFile);
-            AddFileToDownloadsTable(buffer);
-        }
-    }
-}
-*/
-
 void AddDownloadTableAll() {
     char soundFile[PLATFORM_MAX_PATH], buffer[PLATFORM_MAX_PATH];
     int flags;
