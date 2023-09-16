@@ -438,7 +438,6 @@ void ParseConfig() {
     char soundListFile[PLATFORM_MAX_PATH];
     BuildPath(Path_SM,soundListFile,sizeof(soundListFile),"configs/saysounds.cfg");
     if(!FileExists(soundListFile)) {
-        PrintToServer("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nFILE NOT FOUND");
         SetFailState("saysounds.cfg failed to parse! Reason: File doesn't exist!");
     }
     Handle listFile = CreateKeyValues("soundlist");
@@ -481,7 +480,6 @@ void ParseConfig() {
             }
         } while(KvGotoNextKey(listFile));
     } else {
-        PrintToServer("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nSUBKEY NOT FOUND");
         SetFailState("saysounds.cfg failed to parse! Reason: No subkeys found!");
     }
 }
