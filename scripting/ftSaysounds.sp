@@ -70,7 +70,7 @@ public Plugin myinfo =
 {
     name = "Say Sounds FT",
     author = "faketuna",
-    description = "Plays sound files",
+    description = "Plays sound files.\nSpecial thanks for testing plugin >> kur4yam1, valni_nyas, omoi",
     version = PLUGIN_VERSION,
     url = "https://short.f2a.dev/s/github"
 };
