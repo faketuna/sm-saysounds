@@ -646,7 +646,7 @@ public Action CommandSSLength(int client, int args) {
 public Action CommandSSToggle(int client, int args) {
     g_bPlayerSoundDisabled[client] = !g_bPlayerSoundDisabled[client];
     SetClientCookie(client, g_hSoundToggleCookie, g_bPlayerSoundDisabled[client] ? "1" : "0");
-    CPrintToChat(client, "%t%t", "ss prefix", g_bPlayerSoundDisabled[client] ? "ss cmd toggle enable" : "ss cmd toggle disable");
+    CPrintToChat(client, "%t%t", "ss prefix", g_bPlayerSoundDisabled[client] ? "ss cmd toggle disable" : "ss cmd toggle enable");
     return Plugin_Handled;
 }
 
