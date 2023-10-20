@@ -65,6 +65,7 @@ Handle g_hVolume;
 Handle g_hFlags;
 Handle g_hCheckPreCached;
 
+EngineVersion g_hServerGameEngine;
 
 public Plugin myinfo = 
 {
@@ -112,6 +113,8 @@ public void OnPluginStart()
 
     LoadTranslations("common.phrases");
     LoadTranslations("ftSaysounds.phrases");
+
+    g_hServerGameEngine = GetEngineVersion();
 
     SetCookieMenuItem(SoundSettingsMenu, 0 ,"Saysounds");
     for(int i = 1; i <= MaxClients; i++) {
@@ -469,8 +472,11 @@ void ParseConfig() {
                         volume = 2.0;
                     } 
                 }
-
-                Format(fileLocation, sizeof(fileLocation), "*%s", fileLocation);
+                if(g_hServerGameEngine == Engine_CSGO) {
+                    Format(fileLocation, sizeof(fileLocation), "*%s", fileLocation);
+                } else {
+                    Format(fileLocation, sizeof(fileLocation), "%s", fileLocation);
+                }
                 PushArrayString(g_hPath, fileLocation);
                 PushArrayCell(g_hLength, duration);
                 PushArrayCell(g_hVolume, volume);
@@ -501,7 +507,11 @@ bool TryPrecacheSound(int index) {
     if(!GetArrayCell(g_hCheckPreCached, index)) {
         char soundFile[PLATFORM_MAX_PATH];
         GetArrayString(g_hPath, index, soundFile, sizeof(soundFile));
-        AddToStringTable(FindStringTable("soundprecache"), soundFile);
+        if(g_hServerGameEngine == Engine_CSGO) {
+            AddToStringTable(FindStringTable("soundprecache"), soundFile);
+        } else {
+            PrecacheSound(soundFile);
+        }
         SetArrayCell(g_hCheckPreCached, index, true);
     }
     return GetArrayCell(g_hCheckPreCached, index);
