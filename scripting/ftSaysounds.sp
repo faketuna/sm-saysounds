@@ -423,7 +423,7 @@ int GetSaySoundIndex(const char[] soundName) {
     char buff[SAYSOUND_SOUND_NAME_SIZE];
     for(int i = 0; i < GetArraySize(g_hSoundName); i++) {
         GetArrayString(g_hSoundName, i, buff, sizeof(buff));
-        if(StrEqual(buff, soundName)) {
+        if(StrEqual(buff, soundName, false)) {
             return i;
         }
     }
