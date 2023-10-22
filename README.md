@@ -59,6 +59,7 @@
 * `sm_saysounds_enable <0/1>` - Toggle saysounds globally
 * `sm_saysounds_interval <seconds>` - Saysounds cooldown per player.
 * `sm_saysounds_format_chat <0/1>` - Cancel original message and send formatted message.
+* `sm_saysounds_version` - Shows a plugin version.
 
 # Known issue
 
