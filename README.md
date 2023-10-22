@@ -76,4 +76,5 @@ Thanks for helping
 * kur4yam1
 * valni_nyas
 * omoi
+* きゃるる
 * Lupercalia CS:GO MG server
