@@ -98,6 +98,8 @@ public void OnPluginStart()
     RegConsoleCmd("sm_ss_length", CommandSSLength, "Set saysounds length per player.");
     RegConsoleCmd("sm_ss_toggle", CommandSSToggle, "Toggle saysounds per player.");
     RegConsoleCmd("sm_ssmenu", CommandSSMenu, "Toggle saysounds per player.");
+    RegConsoleCmd("sm_saysounds", CommandSSMenu, "Toggle saysounds per player.");
+    RegConsoleCmd("sm_saysound", CommandSSMenu, "Toggle saysounds per player.");
     RegConsoleCmd("sm_ss_list", CommandSSList, "Show saysounds list");
     RegConsoleCmd("sm_sslist", CommandSSList, "Show saysounds list");
     RegConsoleCmd("sm_ss_search", CommandSSSearch, "Search and show saysounds list");
