@@ -1,3 +1,4 @@
 /scripting/*
 !/scripting/ftSaysounds.sp
+!/scripting/compiled/
 .vscode
