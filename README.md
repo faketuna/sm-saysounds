@@ -8,7 +8,7 @@
 
 # Installation
 
-1. Download file as zip in github repo.
+1. Download file as zip from github repo.
 2. Extract files.
 3. Move `configs` `plugins` `translations` folder to your sourcemod folder. `scripting` is are optional.
 4. Modify saysounds.cfg.
