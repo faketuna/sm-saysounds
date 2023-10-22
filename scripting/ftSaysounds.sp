@@ -234,7 +234,7 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
         return Plugin_Continue;
     }
 
-    char arg1[32], arg2[32], arg3[32];
+    char arg1[128], arg2[32], arg3[32];
     GetCmdArg(1, arg1, sizeof(arg1));
     GetCmdArg(2, arg2, sizeof(arg2));
     GetCmdArg(3, arg3, sizeof(arg3));
