@@ -545,7 +545,7 @@ public Action CommandSSSearch(int client, int args) {
     }
     char buff[SAYSOUND_SOUND_NAME_SIZE];
     GetCmdArg(1, buff, sizeof(buff));
-    if(strlen(buff) < 2) {
+    if(strlen(buff) < 3) {
         CPrintToChat(client, "%t%t", "ss prefix", "ss cmd search minimum chars");
         return Plugin_Handled;
     }
