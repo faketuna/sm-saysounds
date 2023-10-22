@@ -80,7 +80,7 @@ public void OnPluginStart()
 {
     g_cSaySoundsEnabled            = CreateConVar("sm_saysounds_enable", "1", "Toggles say sounds globaly", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_cSaySoundsInterval        = CreateConVar("sm_saysounds_interval", "2.0", "Time between each sound to trigger per player. 0.0 to disable", FCVAR_NONE, true, 0.0, true, 30.0);
-    g_cSaySoundsCancelChat        = CreateConVar("sm_saysounds_cancel", "1", "Cancel the chat message when match with saysound.", FCVAR_NONE, true, 0.0, true, 1.0);
+    g_cSaySoundsCancelChat        = CreateConVar("sm_saysounds_format_chat", "1", "Cancel the chat message when match with saysound.", FCVAR_NONE, true, 0.0, true, 1.0);
 
     g_cSaySoundsEnabled.AddChangeHook(OnCvarsChanged);
     g_cSaySoundsInterval.AddChangeHook(OnCvarsChanged);
