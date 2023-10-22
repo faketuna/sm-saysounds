@@ -253,6 +253,10 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
         strcopy(arg3, sizeof(arg3), cBuff[2]);
     }
 
+    if(cArgs > 1 && StrContains(arg2, "@") == -1 && StrContains(arg2, "%") == -1) {
+        return Plugin_Continue;
+    }
+
     int si = GetSaySoundIndex(cBuff[0]);
     if(si == -1) {
         return Plugin_Continue;
