@@ -61,7 +61,7 @@
 
 # Known issue
 
-* When player said 3 words and first word is matched to saysound it plays a sound.
+* When player use `%<time>` syntax. It will stop all same sound when timer fired. (e.g. If someone use `test %0.1` after someone use `test` with 5 seconds long sound, It stops all test sound after timer fired)
 
 # Todo
 
