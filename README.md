@@ -40,24 +40,24 @@
 
 ### User commands
 
-* `!saysounds`, `!saysound`, `!ssmenu`, `!ss_menu` | Opens settings menu.
-* `!ss_volume <0~100>`| Set the saysound volume. If no argument, will work as !ssmenu
-* `!ss_speed <50~200>`(You can change max and min range from source file) | Set the saysound speed/pitch. If no argument, will work as !ssmenu
-* `!ss_length <0~>` | Set the saysound length in seconds. If no argument, will work as !ssmenu
-* `!ss_toggle` | Toggle saysounds.
-* `!ss_list` `!sslist` | Show all of saysounds provided in server.
-* `!ss_search <string>` `!sss <string>` | Search saysounds.
+* `!saysounds`, `!saysound`, `!ssmenu`, `!ss_menu` - Opens settings menu.
+* `!ss_volume <0~100>`- Set the saysound volume. If no argument, will work as !ssmenu
+* `!ss_speed <50~200>`(You can change max and min range from source file) - Set the saysound speed/pitch. If no argument, will work as !ssmenu
+* `!ss_length <0~>` - Set the saysound length in seconds. If no argument, will work as !ssmenu
+* `!ss_toggle` - Toggle saysounds.
+* `!ss_list` `!sslist` - Show all of saysounds provided in server.
+* `!ss_search <string>` `!sss <string>` - Search saysounds.
 
 ### Admin commands
 
-* `!ss_ban <player name>` | Ban player from using saysounds. | If no argument, will show a player list menu.
-* `!ss_unban <player name>` | Unban player from using saysounds. | If no argument, will show a player list menu.
+* `!ss_ban <player name>` - Ban player from using saysounds. - If no argument, will show a player list menu.
+* `!ss_unban <player name>` - Unban player from using saysounds. - If no argument, will show a player list menu.
 
 ### ConVar
 
-* `sm_saysounds_enable <0/1>` | Toggle saysounds globally
-* `sm_saysounds_interval <seconds>` | Saysounds cooldown per player.
-* `sm_saysounds_format_chat <0/1>` | Cancel original message and send formatted message.
+* `sm_saysounds_enable <0/1>` - Toggle saysounds globally
+* `sm_saysounds_interval <seconds>` - Saysounds cooldown per player.
+* `sm_saysounds_format_chat <0/1>` - Cancel original message and send formatted message.
 
 # Known issue
 
