@@ -6,6 +6,14 @@
 
 ### This plugin tested in CS:GO and L4D2. Other source engine game is not tested but may work.
 
+# Installation
+
+1. Download file as zip in github repo.
+2. Extract files.
+3. Move `configs` `plugins` `translations` folder to your sourcemod folder. `scripting` is are optional.
+4. Modify saysounds.cfg.
+5. Done.
+
 # Feature
 
 ### Key feature
