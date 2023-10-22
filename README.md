@@ -26,13 +26,13 @@
 
 * `<sound>`
 * `<sound> @<speed>`
-* `<sound> %<time>`
-* `<sound> @<speed> %<time>`
-* `<sound> %<time> @<speed>`
+* `<sound> %<length>`
+* `<sound> @<speed> %<length>`
+* `<sound> %<length> @<speed>`
 
 * Sound: Yeah same as other saysounds plugin. e.g. `test` in chat
 * speed/pitch: use `@` and specify speed. e.g. `@120`
-* length: use `%` and specifiy length in seconds. e.g. `%0.5`
+* length: use `%` and specify sound length in seconds. e.g. `%0.5`
 
  So we combined the above, will become like this.
  `test @120 %0.5`
