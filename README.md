@@ -1,5 +1,11 @@
 # Saysounds (ft)
 
+# Caution
+
+### This plugin requires [multicolors](https://github.com/Bara/Multi-Colors) to compile!!!
+
+### This plugin tested in CS:GO and L4D2. Other source engine game is not tested but may work.
+
 # Feature
 
 ### Key feature
@@ -48,6 +54,10 @@
 # Known issue
 
 * When player said 3 words and first word is matched to saysound it plays a sound.
+
+# Todo
+
+* Add temporary ban. (Currently we can only ban permanent)
 
 # Reference plugin from
 
