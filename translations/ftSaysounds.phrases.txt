@@ -74,13 +74,13 @@
     {
         "#format"   "{1:s},{2:d}"
         "en"        "Search of: {1} | Hit: {2}"
-        "jp"        "検索内容: {1} | 合致: {2}"
+        "jp"        "検索内容: {1} | 一致: {2}"
     }
     "ss menu search not found"
     {
         "#format"   "{1:s}"
-        "en"        "No sound was found that match with {lightgreen}{1}"
-        "jp"        "{lightgreen}{1}{default}に合致する音声は見つかりませんでした"
+        "en"        "No saysound was found that contains {lightgreen}{1}"
+        "jp"        "{lightgreen}{1}{default}を含む音声は見つかりませんでした"
     }
     "ss menu title"
     {
