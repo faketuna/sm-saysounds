@@ -1,4 +1,4 @@
 /scripting/*
 !/scripting/ftSaysounds.sp
-!/scripting/compiled/
+compileCopy.bat
 .vscode
