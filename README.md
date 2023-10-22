@@ -66,6 +66,7 @@
 # Todo
 
 * Add temporary ban. (Currently we can only ban permanent)
+* Add self saysounds mute.
 
 # Reference plugin from
 
