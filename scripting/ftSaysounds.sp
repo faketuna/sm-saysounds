@@ -254,7 +254,7 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
         strcopy(arg3, sizeof(arg3), cBuff[2]);
     }
 
-    if(cArgs > 1 && StrContains(arg2, "@") == -1 && StrContains(arg2, "%") == -1) {
+    if(cArgs > 1 && StrContains(arg2, SAYSOUND_PREFIX_SPEED) == -1 && StrContains(arg2, SAYSOUND_PREFIX_LENGTH) == -1) {
         return Plugin_Continue;
     }
 
@@ -285,7 +285,7 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
             }
         }
         case 2: {
-            if(StrContains(arg2, "@") != -1) {
+            if(StrContains(arg2, SAYSOUND_PREFIX_SPEED) != -1) {
                 int p = ProcessPitch(arg2);
 
                 TrySaySound(client, arg1, si, p, -1.0);
@@ -294,7 +294,7 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
                     return Plugin_Handled;
                 }
             }
-            else if(StrContains(arg2, "%") != -1) {
+            else if(StrContains(arg2, SAYSOUND_PREFIX_LENGTH) != -1) {
                 float l = ProcessLength(arg2);
 
                 TrySaySound(client, arg1, si, 100, l);
@@ -307,7 +307,7 @@ public Action CommandListenerSay(int client, const char[] command, int argc) {
         case 3: {
             int p = 100;
             float l = 0.0;
-            if(StrContains(arg2, "@") != -1) {
+            if(StrContains(arg2, SAYSOUND_PREFIX_SPEED) != -1) {
                 p = ProcessPitch(arg2);
                 l = ProcessLength(arg3);
             } else {
@@ -383,7 +383,7 @@ void TrySaySound(int client, char[] soundName, int saySoundIndex, int pitch = 10
 int ProcessPitch(const char[] argText) {
     char ag[6];
     strcopy(ag, sizeof(ag), argText);
-    ReplaceString(ag, sizeof(ag), "@", "");
+    ReplaceString(ag, sizeof(ag), SAYSOUND_PREFIX_SPEED, "");
 
     if(StrEqual(ag, "")) {return -1;}
     if(!IsOnlyDicimal(ag)) { return -1;}
@@ -398,7 +398,7 @@ int ProcessPitch(const char[] argText) {
 float ProcessLength(const char[] argText) {
     char ag[6];
     strcopy(ag, sizeof(ag), argText);
-    ReplaceString(ag, sizeof(ag), "%", "");
+    ReplaceString(ag, sizeof(ag), SAYSOUND_PREFIX_LENGTH, "");
 
     char check[6];
     strcopy(check, sizeof(check), ag);
